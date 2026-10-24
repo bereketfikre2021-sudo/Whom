@@ -24,8 +24,8 @@ const Payments = () => {
           status,
           created_at,
           updated_at,
-          listings (title, categories (name)),
-          user_profiles (full_name, email)
+          listings (title, is_demo, categories (name)),
+          user_profiles (full_name)
         `)
         .order('created_at', { ascending: false });
 
@@ -174,6 +174,11 @@ const Payments = () => {
                       <div>
                         <p className="font-medium text-neutral-900">
                           {payment.listings?.title}
+                          {payment.listings?.is_demo && (
+                            <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-700">
+                              Demo
+                            </span>
+                          )}
                         </p>
                         <p className="text-sm text-neutral-500">
                           {payment.listings?.categories?.name}
@@ -185,8 +190,8 @@ const Payments = () => {
                         <p className="font-medium text-neutral-900">
                           {payment.user_profiles?.full_name || 'Unknown'}
                         </p>
-                        <p className="text-sm text-neutral-500">
-                          {payment.user_profiles?.email}
+                        <p className="text-sm text-neutral-500 font-mono text-xs">
+                          {payment.user_id?.slice(0, 8)}…
                         </p>
                       </div>
                     </td>
@@ -228,8 +233,9 @@ const Payments = () => {
                           <>
                             <button
                               onClick={() => handleApprove(payment.id)}
-                              className="p-2 text-neutral-500 hover:text-green-600 transition-colors"
-                              title="Approve Payment"
+                              disabled={payment.listings?.is_demo}
+                              className="p-2 text-neutral-500 hover:text-green-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                              title={payment.listings?.is_demo ? 'Demo listings cannot be monetized' : 'Approve Payment'}
                             >
                               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -237,8 +243,9 @@ const Payments = () => {
                             </button>
                             <button
                               onClick={() => handleReject(payment.id)}
-                              className="p-2 text-neutral-500 hover:text-red-600 transition-colors"
-                              title="Reject Payment"
+                              disabled={payment.listings?.is_demo}
+                              className="p-2 text-neutral-500 hover:text-red-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                              title={payment.listings?.is_demo ? 'Demo listings cannot be monetized' : 'Reject Payment'}
                             >
                               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

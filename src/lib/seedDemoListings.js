@@ -65,7 +65,7 @@ export const seedDemoListings = async () => {
         images: ['https://images.unsplash.com/photo-1562259949-e8e7689d7828?w=800&h=600&fit=crop'],
         status: 'active',
         fee_type: 'category',
-        featured: false,
+        featured: true,
         is_demo: true,
         metadata: {
           worker_type: 'Painter',
@@ -84,7 +84,7 @@ export const seedDemoListings = async () => {
         images: ['https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=800&h=600&fit=crop'],
         status: 'active',
         fee_type: 'category',
-        featured: false,
+        featured: true,
         is_demo: true,
         metadata: {
           worker_type: 'Carpenter',
@@ -128,7 +128,7 @@ export const seedDemoListings = async () => {
         images: ['https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&h=600&fit=crop'],
         status: 'active',
         fee_type: 'category',
-        featured: false,
+        featured: true,
         is_demo: true,
         metadata: {
           bedrooms: 2,
@@ -149,7 +149,7 @@ export const seedDemoListings = async () => {
         images: ['https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=800&h=600&fit=crop'],
         status: 'active',
         fee_type: 'category',
-        featured: false,
+        featured: true,
         is_demo: true,
         metadata: {
           bedrooms: 1,
@@ -195,7 +195,7 @@ export const seedDemoListings = async () => {
         images: ['https://images.unsplash.com/photo-1544717305-2782549b5136?w=800&h=600&fit=crop'],
         status: 'active',
         fee_type: 'category',
-        featured: false,
+        featured: true,
         is_demo: true,
         metadata: {
           subject: 'English reading, writing, and grammar',
@@ -216,7 +216,7 @@ export const seedDemoListings = async () => {
         images: ['https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=800&h=600&fit=crop'],
         status: 'active',
         fee_type: 'category',
-        featured: false,
+        featured: true,
         is_demo: true,
         metadata: {
           subject: 'Primary school subjects and homework support',
@@ -243,7 +243,7 @@ export const seedDemoListings = async () => {
     }
 
     console.log(`Successfully seeded ${insertedListings.length} demo listings`);
-    return { success: true, count: insertedings.length };
+    return { success: true, count: insertedListings.length };
   } catch (error) {
     console.error('Error seeding demo listings:', error);
     return { success: false, error: error.message };

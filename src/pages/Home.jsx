@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useLanguage } from '../contexts/LanguageContext';
-import { useScrollAnimation } from '../hooks/useScrollAnimation';
 import { seedDemoListings } from '../lib/seedDemoListings';
 
 const Home = () => {
   const { t } = useLanguage();
-  const [categories, setCategories] = useState([]);
+  const navigate = useNavigate();
   const [featuredListings, setFeaturedListings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -44,28 +43,24 @@ const Home = () => {
 
   const fetchData = async () => {
     try {
-      const [categoriesData, listingsData] = await Promise.all([
-        supabase.from('categories').select('*').order('name'),
-        supabase
-          .from('listings')
-          .select(`
-            id,
-            title,
-            description,
-            price,
-            location,
-            images,
-            is_demo,
-            featured,
-            categories (*)
-          `)
-          .eq('status', 'active')
-          .eq('featured', true)
-          .order('created_at', { ascending: false })
-          .limit(6),
-      ]);
+      const listingsData = await supabase
+        .from('listings')
+        .select(`
+          id,
+          title,
+          description,
+          price,
+          location,
+          images,
+          is_demo,
+          featured,
+          categories (*)
+        `)
+        .eq('status', 'active')
+        .eq('featured', true)
+        .order('created_at', { ascending: false })
+        .limit(9);
 
-      if (!categoriesData.error) setCategories(categoriesData.data);
       if (!listingsData.error) setFeaturedListings(listingsData.data);
       
       // If no listings exist, seed demo data
@@ -94,7 +89,7 @@ const Home = () => {
             .eq('status', 'active')
             .eq('featured', true)
             .order('created_at', { ascending: false })
-            .limit(6);
+            .limit(9);
           if (newListings) setFeaturedListings(newListings);
         } else {
           setSeedMessage(`Failed to seed: ${seedResult.error}`);
@@ -109,7 +104,7 @@ const Home = () => {
 
   const handleSearch = () => {
     if (searchTerm.trim()) {
-      window.location.href = `/category/construction-workers?search=${encodeURIComponent(searchTerm)}`;
+      navigate(`/category/construction-workers?q=${encodeURIComponent(searchTerm)}`);
     }
   };
 
@@ -119,13 +114,18 @@ const Home = () => {
     'tutors': 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=800&h=600&fit=crop',
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-burgundy"></div>
+  const SkeletonCard = () => (
+    <div className="bg-white rounded-2xl md:rounded-3xl overflow-hidden border border-neutral-200">
+      <div className="aspect-[4/3] skeleton" />
+      <div className="p-4 md:p-6 space-y-3">
+        <div className="h-3 skeleton rounded-full w-1/3" />
+        <div className="h-5 skeleton rounded-lg w-3/4" />
+        <div className="h-3 skeleton rounded-full w-full" />
+        <div className="h-3 skeleton rounded-full w-2/3" />
+        <div className="h-10 skeleton rounded-xl mt-4" />
       </div>
-    );
-  }
+    </div>
+  );
 
   const handleSeedDemo = async () => {
     setSeeding(true);
@@ -145,7 +145,7 @@ const Home = () => {
   return (
     <div className="space-y-16">
       {/* Seed Demo Button (Development Only) */}
-      {process.env.NODE_ENV === 'development' && (
+      {import.meta.env.DEV && (
         <div className="fixed bottom-4 right-4 z-50">
           <button
             onClick={handleSeedDemo}
@@ -172,7 +172,7 @@ const Home = () => {
                 {t('heroEyebrow')}
               </p>
               <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-neutral-900 leading-tight opacity-0 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
-                Find the right people, place, and tutor.
+                Find the Right People, Homes, and Tutors.
               </h1>
               <p className="text-base md:text-lg lg:text-xl text-neutral-600 leading-relaxed max-w-xl opacity-0 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
                 Looking for a skilled worker, a place to rent, or a tutor? Explore local listings, compare your options, and connect directly after payment verification.
@@ -423,26 +423,30 @@ const Home = () => {
       </section>
 
       {/* Featured Listings */}
-      {featuredListings.length > 0 ? (
-        <section className="px-4 sm:px-0">
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-8 md:mb-12 gap-4">
-            <div>
-              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-neutral-900 mb-2">
-                {t('exploreAvailableListings')}
-              </h2>
-              <p className="text-neutral-600 text-sm md:text-base">{t('browseListingsDesc')}</p>
-            </div>
-            <Link
-              to="/category/construction-workers"
-              className="flex items-center text-brand-burgundy hover:text-neutral-900 font-medium group self-start sm:self-auto"
-            >
-              View All
-              <svg className="w-5 h-5 ml-1 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </Link>
+      <section className="px-4 sm:px-0">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-8 md:mb-12 gap-4">
+          <div>
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-neutral-900 mb-2">
+              {t('exploreAvailableListings')}
+            </h2>
+            <p className="text-neutral-600 text-sm md:text-base">{t('browseListingsDesc')}</p>
           </div>
+          <Link
+            to="/category/construction-workers"
+            className="flex items-center text-brand-burgundy hover:text-neutral-900 font-medium group self-start sm:self-auto"
+          >
+            View All
+            <svg className="w-5 h-5 ml-1 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </Link>
+        </div>
 
+        {loading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+            {Array.from({ length: 3 }).map((_, i) => <SkeletonCard key={i} />)}
+          </div>
+        ) : featuredListings.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
             {featuredListings.map((listing, index) => (
               <Link
@@ -509,20 +513,12 @@ const Home = () => {
               </Link>
             ))}
           </div>
-        </section>
-      ) : (
-        <section className="bg-white rounded-2xl md:rounded-3xl shadow-lg p-6 md:p-12 text-center border border-neutral-200 mx-4 sm:mx-0">
-          <svg className="w-16 h-16 md:w-24 md:h-24 text-neutral-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-          </svg>
-          <h3 className="text-lg md:text-xl font-semibold text-neutral-900 mb-2">
-            {t('noListingsYet')}
-          </h3>
-          <p className="text-neutral-600 text-sm md:text-base">
-            {t('noListingsYet')}
-          </p>
-        </section>
-      )}
+        ) : (
+          <div className="text-center py-12 text-neutral-500 text-sm">
+            Listings coming soon.
+          </div>
+        )}
+      </section>
 
       {/* How It Works */}
       <section className="bg-white rounded-2xl md:rounded-3xl shadow-lg p-6 md:p-8 lg:p-12 border border-neutral-200 mx-4 sm:mx-0">

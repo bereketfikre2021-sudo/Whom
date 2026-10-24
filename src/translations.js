@@ -119,6 +119,12 @@ export const translations = {
     noteDesc: 'Your payment confirmation will be submitted for verification. You will be notified once it has been reviewed.',
     cancel: 'Cancel',
     submitPayment: 'Submit Payment for Verification',
+    fileTypeNotSupported: 'Only image files are supported.',
+    fileSizeExceeded: 'Image must be under 5 MB.',
+    selectReceiptImage: 'Please select a receipt image before submitting.',
+    paymentSubmitError: 'Failed to submit payment. Please try again.',
+    submittingPayment: 'Submitting…',
+    account: 'Account',
     
     // Auth
     welcomeBack: 'Welcome Back',
@@ -328,6 +334,12 @@ export const translations = {
     noteDesc: 'ክፍዎዎ ለማረጋገጽ ይላክባል። በኋላ ተረጋ ሲሆን ይነግርዎታል።',
     cancel: 'ተው',
     submitPayment: 'ክፍዎን ለማረጋገጽ ይላክቡ',
+    fileTypeNotSupported: 'የምስል ፋይሎች ብቻ ይፈቀዳሉ።',
+    fileSizeExceeded: 'ምስሉ ከ5 ሜጋ ባይት ማለፍ የለበትም።',
+    selectReceiptImage: 'ከመላካቸው በፊት የደረሰኝ ምስልን ይምረጡ።',
+    paymentSubmitError: 'ክፍያ መላክ አልተሳካም። እባክዎ እንደገና ይሞክሩ።',
+    submittingPayment: 'በማቅረብ ላይ…',
+    account: 'መለያ',
     
     // Auth
     welcomeBack: 'እንኳደኑ ደህና መጡ',

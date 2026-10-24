@@ -68,7 +68,7 @@ CREATE TABLE payments (
   amount DECIMAL(10,2) NOT NULL,
   payment_method TEXT NOT NULL CHECK (payment_method IN ('telebirr', 'cbe', 'bank')),
   transaction_id TEXT,
-  receipt_image TEXT,
+  receipt_url TEXT,
   status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'verified', 'rejected')),
   admin_notes TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -294,7 +294,7 @@ CREATE OR REPLACE FUNCTION create_payment(
   p_user_id UUID,
   p_payment_method TEXT,
   p_transaction_id TEXT,
-  p_receipt_image TEXT
+  p_receipt_url TEXT
 )
 RETURNS UUID AS $$
 DECLARE
@@ -330,7 +330,7 @@ BEGIN
     amount,
     payment_method,
     transaction_id,
-    receipt_image,
+    receipt_url,
     status
   ) VALUES (
     p_listing_id,
@@ -338,7 +338,7 @@ BEGIN
     v_fee_amount,
     p_payment_method,
     p_transaction_id,
-    p_receipt_image,
+    p_receipt_url,
     'pending'
   ) RETURNING id INTO v_payment_id;
 

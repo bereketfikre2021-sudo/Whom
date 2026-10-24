@@ -62,7 +62,7 @@ CREATE TABLE payments (
   amount DECIMAL(10,2) NOT NULL,
   payment_method TEXT NOT NULL CHECK (payment_method IN ('telebirr', 'cbe', 'bank')),
   transaction_id TEXT,
-  receipt_image TEXT,
+  receipt_url TEXT,
   status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'verified', 'rejected')),
   admin_notes TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),

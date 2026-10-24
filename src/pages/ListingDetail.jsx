@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import PaymentModal from '../components/PaymentModal';
@@ -7,6 +7,7 @@ import PaymentModal from '../components/PaymentModal';
 const ListingDetail = () => {
   const { id } = useParams();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [listing, setListing] = useState(null);
   const [category, setCategory] = useState(null);
   const [categoryFee, setCategoryFee] = useState(null);
@@ -101,7 +102,7 @@ const ListingDetail = () => {
 
   const handleUnlockContact = () => {
     if (!user) {
-      alert('Please log in first.');
+      navigate('/login');
       return;
     }
     setShowPaymentModal(true);

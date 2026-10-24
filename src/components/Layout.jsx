@@ -1,15 +1,20 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const Layout = ({ children }) => {
   const { user, isAdmin, signOut } = useAuth();
   const { language, changeLanguage, t } = useLanguage();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
 
-  console.log('Layout render - user:', user?.email, 'isAdmin:', isAdmin);
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 10);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const handleSignOut = async () => {
     await signOut();
@@ -20,21 +25,21 @@ const Layout = ({ children }) => {
   return (
     <div className="min-h-screen bg-brand-offwhite">
       {/* Header */}
-      <header className="bg-white shadow-sm sticky top-0 z-50 border-b border-neutral-200">
+      <header className={`bg-white sticky top-0 z-50 border-b border-neutral-200 transition-shadow duration-200 ${scrolled ? 'shadow-md' : 'shadow-sm'}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
             <Link to="/" className="flex items-center space-x-2 md:space-x-3 group">
               <img
                 src="/Logo.svg"
-                alt="የሚፈልጉትን ያግኙ"
+                alt="ምን እናቅርብ"
                 className="h-8 md:h-10 w-auto group-hover:scale-105 transition-transform"
               />
               <div className="hidden sm:block">
                 <h1 className="text-base md:text-lg font-bold text-neutral-900 group-hover:text-brand-burgundy transition-colors">
-                  የሚፈልጉትን ያግኙ
+                  ምን እናቅርብ
                 </h1>
-                <p className="text-xs text-neutral-500">Find What You Need</p>
+                <p className="text-xs text-neutral-500">Ethiopian Marketplace</p>
               </div>
             </Link>
 
@@ -133,9 +138,9 @@ const Layout = ({ children }) => {
                       {t('logOut')}
                     </button>
                   </div>
-                  <div className="w-10 h-10 bg-brand-burgundy rounded-full flex items-center justify-center text-white font-semibold">
+                  <Link to="/account" className="w-10 h-10 bg-brand-burgundy rounded-full flex items-center justify-center text-white font-semibold hover:opacity-90 transition-opacity" title={t('myAccount')}>
                     {(user.user_metadata?.full_name || 'U')[0].toUpperCase()}
-                  </div>
+                  </Link>
                 </>
               ) : (
                 <>
@@ -325,17 +330,17 @@ const Layout = ({ children }) => {
               <div className="flex items-center space-x-2 md:space-x-3 mb-4">
                 <img
                   src="/Logo.svg"
-                  alt="የሚፈልጉትን ያግኙ"
+                  alt="ምን እናቅርብ"
                   className="h-6 md:h-8 w-auto drop-shadow-lg"
                   style={{ filter: 'brightness(0) invert(1)' }}
                 />
                 <div>
-                  <h3 className="text-sm md:text-base font-bold text-white">የሚፈልጉትን ያግኙ</h3>
-                  <p className="text-xs text-neutral-200">Find What You Need</p>
+                  <h3 className="text-sm md:text-base font-bold text-white">ምን እናቅርብ</h3>
+                  <p className="text-xs text-neutral-200">Ethiopian Marketplace</p>
                 </div>
               </div>
               <p className="text-neutral-200/80 text-xs md:text-sm mb-4 max-w-md leading-relaxed">
-                A simpler way to find construction workers,<br />rental houses, and tutors in Ethiopia.
+                A simpler way to find construction workers, rental houses, and tutors in Ethiopia.
               </p>
             </div>
             <div>

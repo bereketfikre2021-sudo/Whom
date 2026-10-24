@@ -4,7 +4,6 @@ import { supabase } from '../../lib/supabase';
 
 const Listings = () => {
   const [listings, setListings] = useState([]);
-  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -14,8 +13,7 @@ const Listings = () => {
 
   const fetchData = async () => {
     try {
-      const [listingsData, categoriesData] = await Promise.all([
-        supabase
+      const listingsData = await supabase
           .from('listings')
           .select(`
             id,
@@ -28,12 +26,9 @@ const Listings = () => {
             created_at,
             categories (*)
           `)
-          .order('created_at', { ascending: false }),
-        supabase.from('categories').select('*').order('name'),
-      ]);
+          .order('created_at', { ascending: false });
 
       if (!listingsData.error) setListings(listingsData.data);
-      if (!categoriesData.error) setCategories(categoriesData.data);
     } catch (err) {
       setError('Something went wrong. Please try again.');
     } finally {
@@ -134,15 +129,15 @@ const Listings = () => {
           <h1 className="text-3xl font-bold text-neutral-900 mb-2">Listings Management</h1>
           <p className="text-neutral-600">Manage all marketplace listings</p>
         </div>
-        <Link
-          to="/admin/listings/new"
+        <button
+          onClick={() => alert('Listing creation form coming soon.')}
           className="px-6 py-3 bg-brand-burgundy text-white rounded-xl font-semibold hover:bg-neutral-900 shadow-lg hover:shadow-xl transition-all flex items-center gap-2"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
           </svg>
           Add Listing
-        </Link>
+        </button>
       </div>
 
       {error && (
@@ -159,12 +154,12 @@ const Listings = () => {
             </svg>
             <h3 className="text-xl font-semibold text-neutral-900 mb-2">No listings yet</h3>
             <p className="text-neutral-600 mb-6">Get started by adding your first listing.</p>
-            <Link
-              to="/admin/listings/new"
+            <button
+              onClick={() => alert('Listing creation form coming soon.')}
               className="inline-block px-6 py-3 bg-brand-burgundy text-white rounded-xl font-medium hover:bg-neutral-900 transition-all"
             >
               Add Listing
-            </Link>
+            </button>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -246,9 +241,9 @@ const Listings = () => {
                           </svg>
                         </Link>
                         <Link
-                          to={`/admin/listings/${listing.id}/edit`}
+                          to={`/listing/${listing.id}`}
                           className="p-2 text-neutral-500 hover:text-brand-burgundy transition-colors"
-                          title="Edit Listing"
+                          title="Edit Listing (view only — edit form coming soon)"
                         >
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
