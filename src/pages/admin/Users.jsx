@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
+import { categoryLabel } from '../../lib/categoryLabel';
 import AdminLayout from './Layout';
 
 const PER_PAGE = 15;
@@ -146,7 +147,7 @@ const UserDrawer = ({ user, onClose, onToggleAdmin }) => {
                   <div key={p.id} className="flex items-center justify-between bg-neutral-50 rounded-xl px-4 py-3 gap-3">
                     <div className="min-w-0">
                       <p className="text-xs font-semibold text-neutral-900 truncate">{p.listings?.title || 'Listing'}</p>
-                      <p className="text-[11px] text-neutral-400">{p.listings?.categories?.name} · {p.payment_method} · {new Date(p.created_at).toLocaleDateString()}</p>
+                      <p className="text-[11px] text-neutral-400">{categoryLabel(p.listings?.categories)} · {p.payment_method} · {new Date(p.created_at).toLocaleDateString()}</p>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
                       <span className="text-xs font-bold text-brand-burgundy">{p.amount} ETB</span>
@@ -171,7 +172,7 @@ const UserDrawer = ({ user, onClose, onToggleAdmin }) => {
                   <div key={c.id} className="flex items-center justify-between bg-neutral-50 rounded-xl px-4 py-3">
                     <div>
                       <p className="text-xs font-semibold text-neutral-900">{c.listings?.title}</p>
-                      <p className="text-[11px] text-neutral-400">{c.listings?.categories?.name}</p>
+                      <p className="text-[11px] text-neutral-400">{categoryLabel(c.listings?.categories)}</p>
                     </div>
                     <span className="text-[11px] text-neutral-400">{new Date(c.accessed_at).toLocaleDateString()}</span>
                   </div>

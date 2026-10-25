@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
+import { categoryLabel } from '../../lib/categoryLabel';
 import AdminLayout from './Layout';
 
 const StatusBadge = ({ status }) => {
@@ -199,7 +200,7 @@ const Payments = () => {
                     <tr key={p.id} className={`hover:bg-neutral-50 transition-colors ${p.status === 'pending' ? 'bg-amber-50/30' : ''}`}>
                       <td className="px-4 py-3">
                         <p className="font-semibold text-neutral-900 max-w-[160px] truncate">{p.listings?.title || '—'}</p>
-                        <p className="text-[11px] text-neutral-400">{p.listings?.categories?.name}</p>
+                        <p className="text-[11px] text-neutral-400">{categoryLabel(p.listings?.categories)}</p>
                         {p.listings?.is_demo && (
                           <span className="text-[10px] font-bold text-orange-500">DEMO</span>
                         )}

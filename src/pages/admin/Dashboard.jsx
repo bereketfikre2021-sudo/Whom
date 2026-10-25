@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
+import { categoryLabel } from '../../lib/categoryLabel';
 import AdminLayout from './Layout';
 
 const StatCard = ({ label, value, icon, loading }) => (
@@ -167,7 +168,7 @@ const Dashboard = () => {
                   <div key={l.id} className="flex items-center justify-between px-5 py-3">
                     <div className="min-w-0">
                       <p className="text-sm font-semibold text-neutral-900 truncate">{l.title}</p>
-                      <p className="text-xs text-neutral-400">{l.categories?.name} · {new Date(l.created_at).toLocaleDateString()}</p>
+                      <p className="text-xs text-neutral-400">{categoryLabel(l.categories)} · {new Date(l.created_at).toLocaleDateString()}</p>
                     </div>
                     {statusBadge(l.status)}
                   </div>

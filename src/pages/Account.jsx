@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import { categoryLabel } from '../lib/categoryLabel';
 
 /* ── Status badge ── */
 const StatusBadge = ({ status }) => {
@@ -372,7 +373,7 @@ const Account = () => {
                       {p.listings?.title || 'Listing'}
                     </p>
                     <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                      <span className="text-xs text-neutral-400">{p.listings?.categories?.name}</span>
+                      <span className="text-xs text-neutral-400">{categoryLabel(p.listings?.categories)}</span>
                       <span className="text-neutral-300">·</span>
                       <span className="text-xs text-neutral-400">{p.payment_method}</span>
                       <span className="text-neutral-300">·</span>
@@ -439,7 +440,7 @@ const Account = () => {
                       {item.listings?.title}
                     </p>
                     <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-xs text-neutral-400">{item.listings?.categories?.name}</span>
+                      <span className="text-xs text-neutral-400">{categoryLabel(item.listings?.categories)}</span>
                       {item.listings?.location && (
                         <>
                           <span className="text-neutral-300">·</span>

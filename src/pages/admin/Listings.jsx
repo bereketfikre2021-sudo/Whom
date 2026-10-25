@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
+import { categoryLabel } from '../../lib/categoryLabel';
 import AdminLayout from './Layout';
 
 /* ── Status badge ── */
@@ -436,7 +437,7 @@ const Listings = () => {
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-neutral-500 whitespace-nowrap">{l.categories?.name}</td>
+                      <td className="px-4 py-3 text-neutral-500 whitespace-nowrap">{categoryLabel(l.categories)}</td>
                       <td className="px-4 py-3 font-semibold text-brand-burgundy whitespace-nowrap">{l.price || '—'}</td>
                       <td className="px-4 py-3 text-neutral-500 max-w-[120px] truncate">{l.location || '—'}</td>
                       <td className="px-4 py-3"><StatusBadge status={l.status} /></td>

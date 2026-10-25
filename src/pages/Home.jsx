@@ -4,6 +4,8 @@ import { supabase } from '../lib/supabase';
 import { useLanguage } from '../contexts/LanguageContext';
 
 /* ─── Category SVG icons (white, for solid coloured bg) ─── */
+import { categoryLabel } from '../lib/categoryLabel';
+
 const ConstructionSVG = () => (
   <svg viewBox="0 0 64 64" fill="none" className="w-full h-full" aria-hidden="true">
     <rect x="8" y="46" width="48" height="7" rx="3.5" fill="white" opacity="0.3"/>
@@ -391,7 +393,7 @@ const Home = () => {
                             </div>
                             {/* Body */}
                             <div className="p-4">
-                              <span className="text-[11px] font-semibold text-brand-burgundy bg-brand-burgundy/8 px-2 py-0.5 rounded-full">{listing.categories?.name}</span>
+                              <span className="text-[11px] font-semibold text-brand-burgundy bg-brand-burgundy/8 px-2 py-0.5 rounded-full">{categoryLabel(listing.categories)}</span>
                               <p className="mt-2 text-sm font-bold text-neutral-900 line-clamp-1 group-hover:text-brand-burgundy transition-colors">{listing.title}</p>
                               {sub && <p className="text-xs text-neutral-500 mt-0.5">{sub}</p>}
                               <p className="mt-1.5 text-xs text-neutral-500 line-clamp-2 min-h-[32px]">{listing.description}</p>
