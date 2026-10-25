@@ -1,0 +1,117 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" fill="none">
+  <!-- Background shapes -->
+  <rect width="800" height="600" fill="#FEFEFE"/>
+  <circle cx="650" cy="100" r="180" fill="#561836" opacity="0.04"/>
+  <circle cx="100" cy="500" r="150" fill="#561836" opacity="0.04"/>
+
+  <!-- Main house illustration -->
+  <g transform="translate(320, 80)">
+    <!-- House body -->
+    <rect x="40" y="120" width="200" height="160" rx="4" fill="#561836" opacity="0.12"/>
+    <rect x="40" y="120" width="200" height="160" rx="4" stroke="#561836" stroke-width="2" opacity="0.3"/>
+    <!-- Roof -->
+    <path d="M20 125 L140 30 L260 125" fill="#561836" opacity="0.25"/>
+    <path d="M20 125 L140 30 L260 125" stroke="#561836" stroke-width="2.5" fill="none" opacity="0.5"/>
+    <!-- Door -->
+    <rect x="112" y="200" width="56" height="80" rx="3" fill="#561836" opacity="0.35"/>
+    <circle cx="160" cy="242" r="4" fill="#561836" opacity="0.6"/>
+    <!-- Windows -->
+    <rect x="60" y="150" width="48" height="40" rx="3" fill="white" stroke="#561836" stroke-width="1.5" opacity="0.7"/>
+    <line x1="84" y1="150" x2="84" y2="190" stroke="#561836" stroke-width="1" opacity="0.4"/>
+    <line x1="60" y1="170" x2="108" y2="170" stroke="#561836" stroke-width="1" opacity="0.4"/>
+    <rect x="170" y="150" width="48" height="40" rx="3" fill="white" stroke="#561836" stroke-width="1.5" opacity="0.7"/>
+    <line x1="194" y1="150" x2="194" y2="190" stroke="#561836" stroke-width="1" opacity="0.4"/>
+    <line x1="170" y1="170" x2="218" y2="170" stroke="#561836" stroke-width="1" opacity="0.4"/>
+    <!-- Chimney -->
+    <rect x="190" y="45" width="24" height="50" rx="2" fill="#561836" opacity="0.3"/>
+  </g>
+
+  <!-- Worker figure (left) -->
+  <g transform="translate(100, 180)">
+    <!-- Body -->
+    <rect x="28" y="70" width="44" height="60" rx="6" fill="#561836" opacity="0.2"/>
+    <rect x="28" y="70" width="44" height="60" rx="6" stroke="#561836" stroke-width="2" opacity="0.4"/>
+    <!-- Head -->
+    <circle cx="50" cy="50" r="24" fill="#561836" opacity="0.15"/>
+    <circle cx="50" cy="50" r="24" stroke="#561836" stroke-width="2" opacity="0.4"/>
+    <!-- Hard hat -->
+    <path d="M20 42 Q50 20 80 42" fill="#561836" opacity="0.4"/>
+    <rect x="18" y="40" width="64" height="8" rx="4" fill="#561836" opacity="0.35"/>
+    <!-- Arms -->
+    <line x1="28" y1="90" x2="8" y2="120" stroke="#561836" stroke-width="8" stroke-linecap="round" opacity="0.25"/>
+    <line x1="72" y1="90" x2="92" y2="110" stroke="#561836" stroke-width="8" stroke-linecap="round" opacity="0.25"/>
+    <!-- Tool -->
+    <rect x="85" y="95" width="8" height="40" rx="4" fill="#561836" opacity="0.4"/>
+    <rect x="78" y="93" width="22" height="10" rx="3" fill="#561836" opacity="0.5"/>
+    <!-- Legs -->
+    <rect x="32" y="128" width="16" height="50" rx="5" fill="#561836" opacity="0.2"/>
+    <rect x="52" y="128" width="16" height="50" rx="5" fill="#561836" opacity="0.2"/>
+  </g>
+
+  <!-- Tutor/book figure (right) -->
+  <g transform="translate(560, 160)">
+    <!-- Person -->
+    <circle cx="60" cy="50" r="26" fill="#561836" opacity="0.15"/>
+    <circle cx="60" cy="50" r="26" stroke="#561836" stroke-width="2" opacity="0.4"/>
+    <rect x="34" y="74" width="52" height="65" rx="6" fill="#561836" opacity="0.18"/>
+    <rect x="34" y="74" width="52" height="65" rx="6" stroke="#561836" stroke-width="2" opacity="0.35"/>
+    <!-- Book/board -->
+    <rect x="100" y="60" width="80" height="100" rx="4" fill="white" stroke="#561836" stroke-width="2" opacity="0.6"/>
+    <rect x="105" y="68" width="70" height="6" rx="3" fill="#561836" opacity="0.3"/>
+    <rect x="105" y="80" width="55" height="4" rx="2" fill="#561836" opacity="0.2"/>
+    <rect x="105" y="90" width="60" height="4" rx="2" fill="#561836" opacity="0.2"/>
+    <rect x="105" y="100" width="45" height="4" rx="2" fill="#561836" opacity="0.2"/>
+    <rect x="105" y="110" width="65" height="4" rx="2" fill="#561836" opacity="0.2"/>
+    <!-- Arm pointing -->
+    <line x1="86" y1="90" x2="105" y2="85" stroke="#561836" stroke-width="7" stroke-linecap="round" opacity="0.25"/>
+  </g>
+
+  <!-- Floating badges -->
+  <!-- Badge 1: Construction -->
+  <g transform="translate(60, 370)">
+    <rect width="160" height="52" rx="12" fill="white" stroke="#561836" stroke-width="1.5" opacity="0.8"/>
+    <rect width="160" height="52" rx="12" fill="#561836" opacity="0.04"/>
+    <circle cx="26" cy="26" r="12" fill="#561836" opacity="0.15"/>
+    <circle cx="26" cy="26" r="12" stroke="#561836" stroke-width="1" opacity="0.3"/>
+    <text x="46" y="21" font-family="Inter, sans-serif" font-size="10" font-weight="600" fill="#561836" opacity="0.9">Construction</text>
+    <text x="46" y="36" font-family="Inter, sans-serif" font-size="9" fill="#737373">Workers available</text>
+  </g>
+
+  <!-- Badge 2: Rentals -->
+  <g transform="translate(560, 330)">
+    <rect width="150" height="52" rx="12" fill="white" stroke="#561836" stroke-width="1.5" opacity="0.8"/>
+    <rect width="150" height="52" rx="12" fill="#561836" opacity="0.04"/>
+    <circle cx="26" cy="26" r="12" fill="#561836" opacity="0.15"/>
+    <circle cx="26" cy="26" r="12" stroke="#561836" stroke-width="1" opacity="0.3"/>
+    <text x="46" y="21" font-family="Inter, sans-serif" font-size="10" font-weight="600" fill="#561836" opacity="0.9">Houses for Rent</text>
+    <text x="46" y="36" font-family="Inter, sans-serif" font-size="9" fill="#737373">In Addis Ababa</text>
+  </g>
+
+  <!-- Badge 3: Tutors -->
+  <g transform="translate(310, 440)">
+    <rect width="140" height="52" rx="12" fill="#561836"/>
+    <text x="20" y="24" font-family="Inter, sans-serif" font-size="10" font-weight="600" fill="white">Expert Tutors</text>
+    <text x="20" y="40" font-family="Inter, sans-serif" font-size="9" fill="rgba(255,255,255,0.75)">Find by subject</text>
+  </g>
+
+  <!-- Decorative dots pattern -->
+  <g opacity="0.12">
+    <circle cx="490" cy="60" r="4" fill="#561836"/>
+    <circle cx="510" cy="60" r="4" fill="#561836"/>
+    <circle cx="530" cy="60" r="4" fill="#561836"/>
+    <circle cx="490" cy="80" r="4" fill="#561836"/>
+    <circle cx="510" cy="80" r="4" fill="#561836"/>
+    <circle cx="530" cy="80" r="4" fill="#561836"/>
+    <circle cx="490" cy="100" r="4" fill="#561836"/>
+    <circle cx="510" cy="100" r="4" fill="#561836"/>
+    <circle cx="530" cy="100" r="4" fill="#561836"/>
+  </g>
+  <g opacity="0.1">
+    <circle cx="200" cy="420" r="4" fill="#561836"/>
+    <circle cx="220" cy="420" r="4" fill="#561836"/>
+    <circle cx="240" cy="420" r="4" fill="#561836"/>
+    <circle cx="200" cy="440" r="4" fill="#561836"/>
+    <circle cx="220" cy="440" r="4" fill="#561836"/>
+    <circle cx="240" cy="440" r="4" fill="#561836"/>
+  </g>
+</svg>

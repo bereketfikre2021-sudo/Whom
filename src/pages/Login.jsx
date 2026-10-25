@@ -1,55 +1,44 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import GoogleAuthButton from '../components/GoogleAuthButton';
+import { useLanguage } from '../contexts/LanguageContext';
 
 const Login = () => {
   const navigate = useNavigate();
-
-  const handleAuthSuccess = () => {
-    navigate('/');
-  };
+  const { t } = useLanguage();
 
   return (
-    <div className="min-h-[calc(100vh-80px)] flex items-center justify-center px-4">
-      <div className="max-w-md w-full animate-fade-in-up">
+    <div className="min-h-[calc(100vh-56px)] flex flex-col items-center justify-center px-4 py-10">
+      <div className="w-full max-w-sm animate-fade-in-up">
+
+        {/* Logo + brand */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center space-x-3 mb-6">
-            <img
-              src="/Logo.svg"
-              alt="የሚፈልጉትን ያግኙ"
-              className="w-10 h-10"
-            />
-            <div className="text-left">
-              <h1 className="text-2xl font-bold text-neutral-900">የሚፈልጉትን ያግኙ</h1>
-              <p className="text-sm text-neutral-500">Find What You Need</p>
-            </div>
-          </div>
-          <h2 className="text-3xl font-bold text-neutral-900 mb-2">Welcome Back</h2>
-          <p className="text-neutral-600">Sign in to access your account and payment history.</p>
+          <Link to="/" className="inline-flex mb-6 group" aria-label="ምን እናቅርብ — home">
+            <img src="/Logo.svg" alt="ምን እናቅርብ" className="h-7 w-auto opacity-90 group-hover:opacity-100 transition-opacity" />
+          </Link>
+          <h1 className="text-2xl font-bold text-neutral-900 mb-1.5">Welcome back</h1>
+          <p className="text-sm text-neutral-500">Sign in to access your account and payment history.</p>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-lg p-8 border border-neutral-200 hover-lift">
-          <GoogleAuthButton onSuccess={handleAuthSuccess} />
-        </div>
-
-        <div className="mt-6 text-center">
-          <p className="text-neutral-600">
-            New here?{' '}
-            <button
-              onClick={() => navigate('/register')}
-              className="text-brand-burgundy hover:text-neutral-900 font-medium btn-press"
-            >
-              Create an Account
-            </button>
+        {/* Card */}
+        <div className="bg-white border border-neutral-200 rounded-2xl p-6 shadow-sm">
+          <GoogleAuthButton />
+          <p className="mt-5 text-center text-xs text-neutral-400 leading-relaxed">
+            By continuing you agree to our terms of service and privacy policy.
           </p>
         </div>
 
-        <div className="mt-6 text-center">
-          <button
-            onClick={() => navigate('/')}
-            className="text-sm text-neutral-500 hover:text-brand-burgundy btn-press"
-          >
-            Back to Home
-          </button>
+        {/* Footer link */}
+        <p className="mt-6 text-center text-sm text-neutral-500">
+          Don't have an account?{' '}
+          <Link to="/register" className="text-brand-burgundy font-semibold hover:underline">
+            Sign up
+          </Link>
+        </p>
+
+        <div className="mt-4 text-center">
+          <Link to="/" className="text-xs text-neutral-400 hover:text-brand-burgundy transition-colors">
+            ← Back to home
+          </Link>
         </div>
       </div>
     </div>

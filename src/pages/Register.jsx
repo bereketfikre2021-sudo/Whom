@@ -1,55 +1,62 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import GoogleAuthButton from '../components/GoogleAuthButton';
+import { useLanguage } from '../contexts/LanguageContext';
 
 const Register = () => {
   const navigate = useNavigate();
-
-  const handleAuthSuccess = () => {
-    navigate('/');
-  };
+  const { t } = useLanguage();
 
   return (
-    <div className="min-h-[calc(100vh-80px)] flex items-center justify-center px-4 py-8">
-      <div className="max-w-md w-full animate-fade-in-up">
+    <div className="min-h-[calc(100vh-56px)] flex flex-col items-center justify-center px-4 py-10">
+      <div className="w-full max-w-sm animate-fade-in-up">
+
+        {/* Logo + brand */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center space-x-3 mb-6">
-            <img
-              src="/Logo.svg"
-              alt="የሚፈልጉትን ያግኙ"
-              className="w-10 h-10"
-            />
-            <div className="text-left">
-              <h1 className="text-2xl font-bold text-neutral-900">የሚፈልጉትን ያግኙ</h1>
-              <p className="text-sm text-neutral-500">Find What You Need</p>
+          <Link to="/" className="inline-flex mb-6 group" aria-label="ምን እናቅርብ — home">
+            <img src="/Logo.svg" alt="ምን እናቅርብ" className="h-7 w-auto opacity-90 group-hover:opacity-100 transition-opacity" />
+          </Link>
+          <h1 className="text-2xl font-bold text-neutral-900 mb-1.5">Create your account</h1>
+          <p className="text-sm text-neutral-500">Sign up to browse listings and manage your payments.</p>
+        </div>
+
+        {/* What you get */}
+        <div className="mb-5 space-y-2">
+          {[
+            'Browse workers, homes, and tutors',
+            'Unlock contact details after payment',
+            'Track all your payment history',
+          ].map((item) => (
+            <div key={item} className="flex items-center gap-2.5">
+              <div className="w-4 h-4 rounded-full bg-brand-burgundy/10 flex items-center justify-center flex-shrink-0">
+                <svg className="w-2.5 h-2.5 text-brand-burgundy" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <span className="text-sm text-neutral-600">{item}</span>
             </div>
-          </div>
-          <h2 className="text-3xl font-bold text-neutral-900 mb-2">Create Your Account</h2>
-          <p className="text-neutral-600">Sign up to access listing details and manage your payments.</p>
+          ))}
         </div>
 
-        <div className="bg-white rounded-2xl shadow-lg p-8 border border-neutral-200 hover-lift">
-          <GoogleAuthButton onSuccess={handleAuthSuccess} />
-        </div>
-
-        <div className="mt-6 text-center">
-          <p className="text-neutral-600">
-            Already have an account?{' '}
-            <button
-              onClick={() => navigate('/login')}
-              className="text-brand-burgundy hover:text-neutral-900 font-medium btn-press"
-            >
-              Log In
-            </button>
+        {/* Card */}
+        <div className="bg-white border border-neutral-200 rounded-2xl p-6 shadow-sm">
+          <GoogleAuthButton />
+          <p className="mt-5 text-center text-xs text-neutral-400 leading-relaxed">
+            By continuing you agree to our terms of service and privacy policy.
           </p>
         </div>
 
-        <div className="mt-6 text-center">
-          <button
-            onClick={() => navigate('/')}
-            className="text-sm text-neutral-500 hover:text-brand-burgundy btn-press"
-          >
-            Back to Home
-          </button>
+        {/* Footer link */}
+        <p className="mt-6 text-center text-sm text-neutral-500">
+          Already have an account?{' '}
+          <Link to="/login" className="text-brand-burgundy font-semibold hover:underline">
+            Log in
+          </Link>
+        </p>
+
+        <div className="mt-4 text-center">
+          <Link to="/" className="text-xs text-neutral-400 hover:text-brand-burgundy transition-colors">
+            ← Back to home
+          </Link>
         </div>
       </div>
     </div>

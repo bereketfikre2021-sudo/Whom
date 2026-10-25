@@ -1,68 +1,152 @@
-# Admin Setup Guide — ምን እናቅርብ
+# Admin Panel Setup — Required Manual Steps
 
-## 1. Database SQL Migrations
+## 1. Run these SQL statements in Supabase SQL Editor
 
-These SQL files must be run in the **Supabase SQL Editor** (Dashboard → SQL Editor → New Query).
+Open: https://supabase.com/dashboard/project/ebuqyhpvtqakhzeowrll/sql/new
 
-### 1a. verify_payment function (required for payment verification)
-
-Open `supabase-verify-payment.sql` and paste its full contents into the SQL editor, then click Run.
-
-This creates the `verify_payment(p_payment_id, p_approved)` stored function that the admin payments page calls when approving or rejecting payments.
-
-### 1b. Receipt column rename (only if DB was created before this fix)
-
-If the `payments` table was created from the old schema (which had `receipt_image` instead of `receipt_url`), run:
+### A. Create the verify_payment function (if not already present)
 
 ```sql
-ALTER TABLE payments RENAME COLUMN receipt_image TO receipt_url;
+CREATE OR REPLACE FUNCTION verify_payment(
+  p_payment_id UUID,
+  p_approved BOOLEAN
+)
+RETURNS VOID AS $$
+DECLARE
+  v_payment RECORD;
+BEGIN
+  -- Get and lock the payment row
+  SELECT * INTO v_payment
+  FROM payments
+  WHERE id = p_payment_id
+  AND status = 'pending'
+  FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Payment not found or already reviewed';
+  END IF;
+
+  -- Block demo listing payments
+  IF EXISTS (
+    SELECT 1 FROM listings WHERE id = v_payment.listing_id AND is_demo = true
+  ) THEN
+    RAISE EXCEPTION 'Demo listing payments cannot be approved';
+  END IF;
+
+  IF p_approved THEN
+    -- Mark verified
+    UPDATE payments SET
+      status = 'verified',
+      verified_at = NOW(),
+      verified_by = auth.uid()
+    WHERE id = p_payment_id;
+
+    -- Create contact_access record
+    INSERT INTO contact_access (payment_id, user_id, listing_id)
+    VALUES (p_payment_id, v_payment.user_id, v_payment.listing_id)
+    ON CONFLICT (user_id, listing_id) DO NOTHING;
+  ELSE
+    -- Mark rejected
+    UPDATE payments SET
+      status = 'rejected',
+      verified_at = NOW(),
+      verified_by = auth.uid()
+    WHERE id = p_payment_id;
+  END IF;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+-- Grant to authenticated users (admin check is inside the function via RLS)
+GRANT EXECUTE ON FUNCTION public.verify_payment(UUID, BOOLEAN) TO authenticated;
 ```
 
-Or paste the contents of `supabase-fix-receipt-column.sql` into the SQL editor.
-
-If you are setting up the project for the first time using `supabase-schema.sql`, this step is not needed — the schema already uses `receipt_url`.
-
-### 1c. Fix existing demo listings to appear on homepage (if demos were seeded before the fix)
-
-If demo listings were already inserted but are not appearing on the homepage, run:
+### B. Create the listing-images storage bucket
 
 ```sql
-UPDATE listings SET featured = true WHERE is_demo = true;
+-- Run in SQL editor OR do via Storage dashboard
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('listing-images', 'listing-images', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- Allow admins to upload
+CREATE POLICY "Admins can upload listing images"
+ON storage.objects FOR INSERT
+WITH CHECK (
+  bucket_id = 'listing-images'
+  AND public.is_admin(auth.uid())
+);
+
+-- Public read
+CREATE POLICY "Listing images are public"
+ON storage.objects FOR SELECT
+USING (bucket_id = 'listing-images');
+
+-- Admins can delete
+CREATE POLICY "Admins can delete listing images"
+ON storage.objects FOR DELETE
+USING (
+  bucket_id = 'listing-images'
+  AND public.is_admin(auth.uid())
+);
+```
+
+### C. Receipts bucket policies (if not already set)
+
+```sql
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('receipts', 'receipts', false)
+ON CONFLICT (id) DO NOTHING;
+
+CREATE POLICY "Users can upload receipts"
+ON storage.objects FOR INSERT
+WITH CHECK (
+  bucket_id = 'receipts'
+  AND auth.uid()::text = (storage.foldername(name))[1]
+);
+
+CREATE POLICY "Admins can view receipts"
+ON storage.objects FOR SELECT
+USING (
+  bucket_id = 'receipts'
+  AND public.is_admin(auth.uid())
+);
 ```
 
 ---
 
-## 2. Google OAuth Setup
+## 2. Make yourself an admin
 
-1. Go to your **Supabase Dashboard** → Authentication → Providers → Google.
-2. Toggle Google **Enabled**.
-3. Enter your **Google Client ID** and **Google Client Secret** from the [Google Cloud Console](https://console.cloud.google.com/).
-4. Set the **Authorized redirect URIs** in Google Cloud Console to:
-   - Development: `http://localhost:5173/auth/callback` (or use Supabase's generated callback URL)
-   - Production: `https://<your-supabase-project>.supabase.co/auth/v1/callback`
-5. In Supabase Dashboard → Authentication → URL Configuration:
-   - **Site URL**: `http://localhost:5173` (for dev), or your production URL
-   - **Redirect URLs**: add `http://localhost:5173/**` for development
-
----
-
-## 3. Making a User an Admin
-
-After a user signs in, run this in the Supabase SQL editor (replace `<user_uuid>` with the actual UUID from `auth.users`):
+After signing in with Google, run this in Supabase SQL Editor.
+Replace the email with your actual Google account email:
 
 ```sql
-UPDATE user_profiles SET is_admin = true WHERE id = '<user_uuid>';
+UPDATE public.user_profiles
+SET is_admin = true
+WHERE id = (
+  SELECT id FROM auth.users WHERE email = 'YOUR_EMAIL@gmail.com'
+);
+```
+
+Verify it worked:
+```sql
+SELECT id, full_name, is_admin FROM public.user_profiles WHERE is_admin = true;
 ```
 
 ---
 
-## 4. Environment Variables
+## 3. After running the SQL
 
-Ensure the following are set in `.env.local`:
+1. Sign out of the app
+2. Sign back in with Google
+3. Navigate to http://localhost:5173/admin
+4. You should see the admin dashboard
 
-```
-VITE_SUPABASE_URL=https://<your-project>.supabase.co
-VITE_SUPABASE_ANON_KEY=<your-anon-key>
-```
+---
 
-Never commit these values to version control.
+## Security notes
+
+- Admin status is checked server-side via `public.is_admin(auth.uid())` inside RLS policies
+- The `is_admin` field cannot be set by users themselves (enforced by RLS policy)
+- Only admins can create/update/delete listings
+- The `verify_payment` function validates listing ownership and blocks demo listings at the database level
+- Receipt files are in a private bucket — only admins can read them

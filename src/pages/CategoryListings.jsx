@@ -1,469 +1,458 @@
-import { useEffect, useState, useRef } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useEffect, useState, useRef } from 'react';import { useParams, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useLanguage } from '../contexts/LanguageContext';
 
+/* ─── Category header icons (white, for dark bg) ─── */
+const ConstructionIconWhite = () => (
+  <svg viewBox="0 0 48 48" fill="none" className="w-10 h-10" aria-hidden="true">
+    <path d="M8 40h32M18 16h12v24H18z" stroke="white" strokeWidth="2.5" strokeLinejoin="round"/>
+    <path d="M10 40 L24 10 L38 40" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M14 26 Q24 22 34 26" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+    <circle cx="24" cy="8" r="3.5" fill="white" opacity="0.9"/>
+    <rect x="21" y="24" width="6" height="8" rx="1" fill="white" opacity="0.3"/>
+  </svg>
+);
+
+const HouseIconWhite = () => (
+  <svg viewBox="0 0 48 48" fill="none" className="w-10 h-10" aria-hidden="true">
+    <path d="M6 24 L24 8 L42 24" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <rect x="10" y="24" width="28" height="16" rx="1.5" fill="white" opacity="0.2" stroke="white" strokeWidth="2"/>
+    <rect x="20" y="30" width="8" height="10" rx="1" fill="white" opacity="0.5"/>
+    <rect x="13" y="27" width="7" height="6" rx="1" fill="white" opacity="0.5"/>
+    <rect x="28" y="27" width="7" height="6" rx="1" fill="white" opacity="0.5"/>
+    <rect x="29" y="10" width="4" height="9" rx="1" fill="white" opacity="0.5"/>
+  </svg>
+);
+
+const TutorIconWhite = () => (
+  <svg viewBox="0 0 48 48" fill="none" className="w-10 h-10" aria-hidden="true">
+    <rect x="8" y="10" width="32" height="22" rx="2.5" fill="white" opacity="0.15" stroke="white" strokeWidth="2"/>
+    <line x1="14" y1="18" x2="34" y2="18" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+    <line x1="14" y1="23" x2="34" y2="23" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+    <line x1="14" y1="28" x2="26" y2="28" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+    <path d="M20 32 L28 32 L26.5 38 L21.5 38 Z" fill="white" opacity="0.6"/>
+    <line x1="17" y1="38" x2="31" y2="38" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+  </svg>
+);
+
+/* ─── Person avatar — uses listing image if available, else initials ─── */
+const PersonAvatar = ({ name, image }) => {
+  const [imgError, setImgError] = useState(false);
+  const initials = (name || '?').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+  const hue = (name || '').split('').reduce((a, c) => a + c.charCodeAt(0), 0) % 360;
+
+  if (image && !imgError) {
+    return (
+      <img
+        src={image}
+        alt={name}
+        onError={() => setImgError(true)}
+        className="w-12 h-12 rounded-full object-cover flex-shrink-0 border border-neutral-200"
+      />
+    );
+  }
+  return (
+    <div
+      className="w-12 h-12 rounded-full flex items-center justify-center font-bold text-white text-sm flex-shrink-0"
+      style={{ backgroundColor: `hsl(${hue},35%,45%)` }}
+      aria-hidden="true"
+    >
+      {initials}
+    </div>
+  );
+};
+
+/* ─── Skeleton rows ─── */
+const SkeletonRow = () => (
+  <div className="flex items-center gap-4 px-4 py-3.5 border-b border-neutral-100">
+    <div className="w-10 h-10 skeleton rounded-full flex-shrink-0" />
+    <div className="flex-1 space-y-2">
+      <div className="h-4 skeleton rounded w-1/3" />
+      <div className="h-3 skeleton rounded w-1/2" />
+    </div>
+    <div className="w-16 h-4 skeleton rounded" />
+  </div>
+);
+
 const SkeletonCard = () => (
-  <div className="bg-white rounded-xl md:rounded-2xl overflow-hidden border border-neutral-200">
-    <div className="aspect-[4/3] skeleton" />
-    <div className="p-4 md:p-5 space-y-3">
-      <div className="h-3 skeleton rounded-full w-1/3" />
-      <div className="h-5 skeleton rounded-lg w-3/4" />
-      <div className="h-3 skeleton rounded-full w-full" />
-      <div className="h-3 skeleton rounded-full w-2/3" />
-      <div className="h-10 skeleton rounded-xl mt-4" />
+  <div className="bg-white rounded-xl overflow-hidden border border-neutral-200">
+    <div className="aspect-[16/10] skeleton" />
+    <div className="p-4 space-y-2.5">
+      <div className="h-4 skeleton rounded w-3/4" />
+      <div className="h-3 skeleton rounded w-1/2" />
+      <div className="h-8 skeleton rounded-lg mt-3" />
     </div>
   </div>
 );
 
-// Inline SVG icons for category placeholders
-const ConstructionIcon = () => (
-  <svg viewBox="0 0 80 80" fill="none" className="w-16 h-16" aria-hidden="true">
-    <rect x="10" y="50" width="60" height="8" rx="4" fill="#561836" opacity="0.3"/>
-    <rect x="30" y="20" width="20" height="30" rx="2" fill="#561836" opacity="0.5"/>
-    <path d="M20 50 L40 20 L60 50" stroke="#561836" strokeWidth="3" fill="none" opacity="0.7"/>
-    <circle cx="40" cy="14" r="6" fill="#561836" opacity="0.6"/>
-  </svg>
-);
-
-const HouseIcon = () => (
-  <svg viewBox="0 0 80 80" fill="none" className="w-16 h-16" aria-hidden="true">
-    <path d="M10 40 L40 15 L70 40" stroke="#561836" strokeWidth="3" fill="none" opacity="0.7"/>
-    <rect x="20" y="40" width="40" height="25" rx="2" fill="#561836" opacity="0.3"/>
-    <rect x="34" y="50" width="12" height="15" rx="1" fill="#561836" opacity="0.5"/>
-    <rect x="25" y="45" width="10" height="8" rx="1" fill="#561836" opacity="0.5"/>
-    <rect x="45" y="45" width="10" height="8" rx="1" fill="#561836" opacity="0.5"/>
-  </svg>
-);
-
-const TutorIcon = () => (
-  <svg viewBox="0 0 80 80" fill="none" className="w-16 h-16" aria-hidden="true">
-    <rect x="15" y="20" width="50" height="35" rx="3" fill="#561836" opacity="0.2"/>
-    <rect x="15" y="20" width="50" height="35" rx="3" stroke="#561836" strokeWidth="2" opacity="0.6"/>
-    <line x1="25" y1="32" x2="55" y2="32" stroke="#561836" strokeWidth="2" opacity="0.5"/>
-    <line x1="25" y1="39" x2="55" y2="39" stroke="#561836" strokeWidth="2" opacity="0.5"/>
-    <line x1="25" y1="46" x2="45" y2="46" stroke="#561836" strokeWidth="2" opacity="0.5"/>
-    <path d="M35 58 L45 58 L43 65 L37 65 Z" fill="#561836" opacity="0.4"/>
-    <line x1="30" y1="65" x2="50" y2="65" stroke="#561836" strokeWidth="2" opacity="0.5"/>
-  </svg>
-);
-
-const getCategoryIcon = (slug) => {
-  if (slug === 'construction-workers') return <ConstructionIcon />;
-  if (slug === 'houses-for-rent') return <HouseIcon />;
-  if (slug === 'tutors') return <TutorIcon />;
+const getCategoryHeaderIcon = (slug) => {
+  if (slug === 'construction-workers') return <ConstructionIconWhite />;
+  if (slug === 'houses-for-rent') return <HouseIconWhite />;
+  if (slug === 'tutors') return <TutorIconWhite />;
   return null;
 };
 
+/* ─── Person row (workers / tutors) ─── */
+const PersonRow = ({ listing, slug }) => {
+  const meta = listing.metadata || {};
+  const image = listing.images?.[0];
+
+  let trade = '';
+  let experience = '';
+  let extra = '';
+
+  if (slug === 'construction-workers') {
+    trade = meta.worker_type || '';
+    experience = meta.experience || '';
+    extra = meta.availability || '';
+  } else if (slug === 'tutors') {
+    trade = meta.subject || '';
+    experience = meta.experience || '';
+    extra = meta.grade_level || meta.teaching_arrangement || '';
+  }
+
+  return (
+    <Link
+      to={`/listing/${listing.id}`}
+      className="listing-card-reveal reveal-hidden flex items-center gap-4 px-4 py-4 hover:bg-neutral-50 transition-colors border-b border-neutral-100 last:border-0 group"
+    >
+      {/* Avatar */}
+      <PersonAvatar name={listing.title} image={image} />
+
+      {/* Info */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 min-w-0">
+          <p className="text-sm font-bold text-neutral-900 truncate group-hover:text-brand-burgundy transition-colors">
+            {listing.title}
+          </p>
+          {listing.featured && (
+            <span className="text-[10px] font-bold text-brand-burgundy bg-brand-burgundy/8 px-1.5 py-0.5 rounded-full flex-shrink-0 hidden sm:inline">
+              Featured
+            </span>
+          )}
+          {listing.is_demo && (
+            <span className="text-[10px] font-bold text-orange-500 bg-orange-50 border border-orange-200 px-1.5 py-0.5 rounded-full flex-shrink-0 hidden sm:inline">
+              Demo
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+          {trade && (
+            <span className="text-xs font-semibold text-brand-burgundy">{trade}</span>
+          )}
+          {trade && experience && <span className="text-neutral-300 text-xs">·</span>}
+          {experience && (
+            <span className="text-xs text-neutral-500">{experience}</span>
+          )}
+          {extra && (
+            <>
+              <span className="text-neutral-300 text-xs">·</span>
+              <span className="text-xs text-neutral-400">{extra}</span>
+            </>
+          )}
+        </div>
+        <p className="text-xs text-neutral-400 mt-1 flex items-center gap-1">
+          <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          {listing.location}
+        </p>
+      </div>
+
+      {/* Right */}
+      <div className="flex flex-col items-end gap-1 flex-shrink-0">
+        {listing.price && (
+          <span className="text-sm font-extrabold text-brand-burgundy">{listing.price}</span>
+        )}
+        <span className="text-xs text-neutral-400 group-hover:text-brand-burgundy transition-colors font-medium">
+          View
+        </span>
+      </div>
+
+      {/* Chevron */}
+      <svg className="w-4 h-4 text-neutral-300 group-hover:text-brand-burgundy group-hover:translate-x-0.5 transition-all flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+      </svg>
+    </Link>
+  );
+};
+
+/* ─── House card (grid) ─── */
+const HouseCard = ({ listing, catInfo }) => {
+  const meta = listing.metadata || {};
+  const sub = [
+    meta.bedrooms ? `${meta.bedrooms} bed` : null,
+    meta.bathrooms ? `${meta.bathrooms} bath` : null,
+    meta.property_type,
+  ].filter(Boolean).join(' · ');
+
+  return (
+    <Link
+      to={`/listing/${listing.id}`}
+      className="listing-card-reveal reveal-hidden group bg-white rounded-xl border border-neutral-200 overflow-hidden hover:border-brand-burgundy/30 hover:shadow-md transition-all"
+    >
+      {/* Image */}
+      <div className="aspect-[16/10] bg-neutral-100 overflow-hidden relative">
+        {listing.images?.length > 0 ? (
+          <img
+            src={listing.images[0]}
+            alt={listing.title}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center bg-neutral-100">
+            <svg className="w-10 h-10 text-neutral-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 22V12h6v10" />
+            </svg>
+          </div>
+        )}
+        {listing.is_demo && (
+          <span className="absolute top-2 left-2 text-[10px] font-bold text-orange-500 bg-white px-2 py-0.5 rounded-full border border-orange-200 shadow-sm">DEMO</span>
+        )}
+        {listing.featured && (
+          <span className="absolute top-2 right-2 text-[10px] font-bold text-brand-burgundy bg-white px-2 py-0.5 rounded-full border border-brand-burgundy/20 shadow-sm">FEATURED</span>
+        )}
+      </div>
+
+      {/* Body */}
+      <div className="p-4">
+        <p className="text-sm font-semibold text-neutral-900 line-clamp-1 group-hover:text-brand-burgundy transition-colors">
+          {listing.title}
+        </p>
+        {sub && <p className="text-xs text-neutral-500 mt-0.5">{sub}</p>}
+        <div className="flex items-center justify-between mt-3">
+          <span className="text-base font-extrabold text-brand-burgundy">{listing.price}</span>
+          <span className="flex items-center gap-1 text-xs text-neutral-400">
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            {listing.location}
+          </span>
+        </div>
+      </div>
+    </Link>
+  );
+};
+
+/* ════════════════════════════════════════
+   MAIN PAGE
+════════════════════════════════════════ */
 const CategoryListings = () => {
   const { slug } = useParams();
   const { t } = useLanguage();
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [priceMin, setPriceMin] = useState('');
-  const [priceMax, setPriceMax] = useState('');
   const [locationFilter, setLocationFilter] = useState('');
   const [sortBy, setSortBy] = useState('newest');
   const [tradeFilter, setTradeFilter] = useState('');
-  const gridRef = useRef(null);
+  const listRef = useRef(null);
+
+  const isPeople = slug === 'construction-workers' || slug === 'tutors';
 
   useEffect(() => {
     fetchListings();
-    // Reset trade filter when slug changes
     setTradeFilter('');
   }, [slug, sortBy]);
 
-  // Scroll animation observer
+  /* Scroll-reveal */
   useEffect(() => {
     if (loading) return;
     const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('reveal-visible');
-            entry.target.classList.remove('reveal-hidden');
-            observer.unobserve(entry.target);
-          }
-        });
-      },
-      { threshold: 0.1, rootMargin: '0px 0px -40px 0px' }
+      (entries) => entries.forEach((e) => {
+        if (e.isIntersecting) {
+          e.target.classList.add('reveal-visible');
+          e.target.classList.remove('reveal-hidden');
+          observer.unobserve(e.target);
+        }
+      }),
+      { threshold: 0.05, rootMargin: '0px 0px -30px 0px' }
     );
-
-    const cards = document.querySelectorAll('.listing-card-reveal');
-    cards.forEach((el) => observer.observe(el));
-    return () => cards.forEach((el) => observer.unobserve(el));
+    document.querySelectorAll('.listing-card-reveal').forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
   }, [loading]);
 
   const fetchListings = async () => {
     setLoading(true);
-    const { data: categoryData } = await supabase
-      .from('categories')
-      .select('id')
-      .eq('slug', slug)
-      .single();
+    const { data: cat } = await supabase.from('categories').select('id').eq('slug', slug).single();
+    if (!cat) { setLoading(false); return; }
 
-    if (!categoryData) {
-      setLoading(false);
-      return;
-    }
-
-    let query = supabase
+    let q = supabase
       .from('listings')
-      .select(`
-        id,
-        category_id,
-        title,
-        description,
-        price,
-        location,
-        images,
-        status,
-        fee_type,
-        custom_fee,
-        featured,
-        is_demo,
-        created_at,
-        updated_at,
-        metadata,
-        categories (*)
-      `)
+      .select('id, category_id, title, description, price, location, images, status, fee_type, custom_fee, featured, is_demo, created_at, metadata, categories(*)')
       .eq('status', 'active')
-      .eq('category_id', categoryData.id);
+      .eq('category_id', cat.id);
 
-    if (sortBy === 'newest') {
-      query = query.order('created_at', { ascending: false });
-    } else if (sortBy === 'price_low') {
-      query = query.order('price', { ascending: true });
-    } else if (sortBy === 'price_high') {
-      query = query.order('price', { ascending: false });
-    }
+    if (sortBy === 'newest')     q = q.order('created_at', { ascending: false });
+    else if (sortBy === 'price_low')  q = q.order('price', { ascending: true });
+    else if (sortBy === 'price_high') q = q.order('price', { ascending: false });
 
-    const { data, error } = await query;
-
-    if (!error && data) {
-      setListings(data);
-    }
+    const { data, error } = await q;
+    if (!error && data) setListings(data);
     setLoading(false);
   };
 
-  const filteredListings = listings.filter((listing) => {
-    const matchesSearch =
-      listing.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      listing.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesPriceMin = !priceMin || listing.price.includes(priceMin);
-    const matchesPriceMax = !priceMax || listing.price.includes(priceMax);
-    const matchesLocation =
-      !locationFilter ||
-      listing.location.toLowerCase().includes(locationFilter.toLowerCase());
-
-    let matchesTrade = true;
+  const filtered = listings.filter((l) => {
+    const q = searchTerm.toLowerCase();
+    const matchSearch = !q || l.title.toLowerCase().includes(q) || (l.description || '').toLowerCase().includes(q);
+    const matchLoc    = !locationFilter || (l.location || '').toLowerCase().includes(locationFilter.toLowerCase());
+    let matchTrade = true;
     if (tradeFilter) {
-      const meta = listing.metadata || {};
+      const m = l.metadata || {};
       if (slug === 'construction-workers') {
-        matchesTrade =
-          (meta.worker_type || '').toLowerCase().includes(tradeFilter.toLowerCase()) ||
-          (meta.skills || []).some((s) => s.toLowerCase().includes(tradeFilter.toLowerCase()));
+        matchTrade = (m.worker_type || '').toLowerCase().includes(tradeFilter.toLowerCase()) ||
+          (m.skills || []).some(s => s.toLowerCase().includes(tradeFilter.toLowerCase()));
       } else if (slug === 'houses-for-rent') {
-        if (tradeFilter === '1 Bedroom') matchesTrade = meta.bedrooms === 1;
-        else if (tradeFilter === '2 Bedrooms') matchesTrade = meta.bedrooms === 2;
-        else if (tradeFilter === '3+ Bedrooms') matchesTrade = (meta.bedrooms || 0) >= 3;
-        else if (tradeFilter === 'Apartment')
-          matchesTrade = (meta.property_type || '').toLowerCase() === 'apartment';
+        if (tradeFilter === '1 Bedroom')  matchTrade = m.bedrooms === 1;
+        else if (tradeFilter === '2 Bedrooms') matchTrade = m.bedrooms === 2;
+        else if (tradeFilter === '3+ Bedrooms') matchTrade = (m.bedrooms || 0) >= 3;
+        else if (tradeFilter === 'Apartment') matchTrade = (m.property_type || '').toLowerCase() === 'apartment';
       } else if (slug === 'tutors') {
-        matchesTrade = (meta.subject || '').toLowerCase().includes(tradeFilter.toLowerCase());
+        matchTrade = (m.subject || '').toLowerCase().includes(tradeFilter.toLowerCase());
       }
     }
-
-    return matchesSearch && matchesPriceMin && matchesPriceMax && matchesLocation && matchesTrade;
+    return matchSearch && matchLoc && matchTrade;
   });
 
-  const getCategoryInfo = () => {
-    if (slug === 'construction-workers') {
-      return {
-        title: t('findConstructionWorkers'),
-        description: t('findConstructionWorkersDesc'),
-        placeholder: t('searchBySkill'),
-        emptyState: t('noResults'),
-        cardButton: 'View Profile',
-      };
-    } else if (slug === 'houses-for-rent') {
-      return {
-        title: t('findHouseForRent'),
-        description: t('findHouseForRentDesc'),
-        placeholder: t('searchByLocation'),
-        emptyState: t('noResults'),
-        cardButton: 'View Property',
-      };
-    } else if (slug === 'tutors') {
-      return {
-        title: t('findTutor'),
-        description: t('findTutorDesc'),
-        placeholder: t('searchBySubject'),
-        emptyState: t('noResults'),
-        cardButton: 'View Tutor',
-      };
-    }
-    return null;
-  };
+  const catInfo = {
+    'construction-workers': { title: t('findConstructionWorkers'), desc: t('findConstructionWorkersDesc'), placeholder: t('searchBySkill') },
+    'houses-for-rent':      { title: t('findHouseForRent'),        desc: t('findHouseForRentDesc'),        placeholder: t('searchByLocation') },
+    'tutors':               { title: t('findTutor'),               desc: t('findTutorDesc'),               placeholder: t('searchBySubject') },
+  }[slug] || {};
 
-  const handleTradeFilter = (value) => {
-    setTradeFilter((prev) => (prev === value ? '' : value));
-  };
-
-  const tradeButtonClass = (value) =>
-    `px-4 py-2 border rounded-lg text-sm transition-all ${
-      tradeFilter === value
-        ? 'border-brand-burgundy bg-brand-burgundy text-white'
-        : 'border-neutral-200 hover:border-brand-burgundy hover:bg-neutral-100 text-neutral-700'
+  const chipClass = (val) =>
+    `px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+      tradeFilter === val
+        ? 'bg-brand-burgundy text-white border-brand-burgundy'
+        : 'bg-white text-neutral-600 border-neutral-200 hover:border-brand-burgundy hover:text-brand-burgundy'
     }`;
 
-  const getCategorySpecificFilters = () => {
-    if (slug === 'construction-workers') {
-      return (
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mt-4">
-          {['General Laborer', 'Painter', 'Carpenter', 'Electrician', 'Plumber'].map((f) => (
-            <button key={f} onClick={() => handleTradeFilter(f)} className={tradeButtonClass(f)}>
-              {f}
-            </button>
-          ))}
-        </div>
-      );
-    } else if (slug === 'houses-for-rent') {
-      return (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
-          {['1 Bedroom', '2 Bedrooms', '3+ Bedrooms', 'Apartment'].map((f) => (
-            <button key={f} onClick={() => handleTradeFilter(f)} className={tradeButtonClass(f)}>
-              {f}
-            </button>
-          ))}
-        </div>
-      );
-    } else if (slug === 'tutors') {
-      return (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
-          {['Math', 'Science', 'English', 'Amharic'].map((f) => (
-            <button key={f} onClick={() => handleTradeFilter(f)} className={tradeButtonClass(f)}>
-              {f}
-            </button>
-          ))}
-        </div>
-      );
-    }
-    return null;
-  };
-
-  const getCardSubtitle = (listing) => {
-    const meta = listing.metadata || {};
-    const cat = listing.categories?.slug || slug;
-    if (cat === 'construction-workers') {
-      const parts = [meta.worker_type, meta.experience].filter(Boolean);
-      return parts.join(' · ');
-    }
-    if (cat === 'houses-for-rent') {
-      const parts = [meta.bedrooms ? `${meta.bedrooms} bed` : null, meta.area].filter(Boolean);
-      return parts.join(' · ');
-    }
-    if (cat === 'tutors') {
-      const parts = [meta.subject, meta.experience].filter(Boolean);
-      return parts.join(' · ');
-    }
-    return '';
-  };
-
-  const catInfo = getCategoryInfo();
+  const quickFilters = {
+    'construction-workers': ['General Laborer', 'Painter', 'Carpenter', 'Electrician', 'Plumber'],
+    'houses-for-rent':      ['1 Bedroom', '2 Bedrooms', '3+ Bedrooms', 'Apartment'],
+    'tutors':               ['Math', 'Science', 'English', 'Amharic'],
+  }[slug] || [];
 
   return (
-    <div className="space-y-6 md:space-y-8">
-      {/* Category Header — brand solid header, no Unsplash */}
-      <div className="relative rounded-2xl md:rounded-3xl overflow-hidden shadow-xl bg-brand-burgundy">
-        <div className="px-6 py-10 md:py-14 lg:py-16 flex items-center gap-6">
-          <div className="hidden sm:flex w-20 h-20 bg-white/10 rounded-2xl items-center justify-center flex-shrink-0">
-            {getCategoryIcon(slug)}
-          </div>
-          <div>
-            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-2">
-              {catInfo?.title}
-            </h1>
-            <p className="text-sm md:text-base lg:text-lg text-neutral-200">{catInfo?.description}</p>
-          </div>
+    <div className="py-6 md:py-8 space-y-5">
+
+      {/* ── Category header ── */}
+      <div className="bg-brand-burgundy rounded-2xl px-6 py-8 md:py-10 flex items-center gap-5">
+        <div className="w-16 h-16 bg-white/15 rounded-xl flex items-center justify-center flex-shrink-0">
+          {getCategoryHeaderIcon(slug)}
+        </div>
+        <div>
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white">{catInfo.title}</h1>
+          <p className="text-sm text-white/70 mt-1 max-w-xl">{catInfo.desc}</p>
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="bg-white rounded-xl md:rounded-2xl shadow-lg p-4 md:p-6 border border-neutral-200">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4">
-          <div>
-            <label className="block text-xs md:text-sm font-medium text-neutral-700 mb-1 md:mb-2">
-              {t('search')}
-            </label>
-            <div className="relative">
-              <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              <input
-                type="text"
-                placeholder={catInfo?.placeholder}
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-9 md:pl-10 pr-3 md:pr-4 py-2 md:py-3 border border-neutral-200 rounded-lg md:rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-burgundy focus:border-transparent transition-all text-sm"
-              />
-            </div>
-          </div>
-          <div>
-            <label className="block text-xs md:text-sm font-medium text-neutral-700 mb-1 md:mb-2">
-              {t('priceFrom')}
-            </label>
+      {/* ── Filter bar ── */}
+      <div className="bg-white border border-neutral-200 rounded-xl p-4 space-y-3">
+        {/* Search + location + sort */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {/* Search */}
+          <div className="relative">
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
             <input
               type="text"
-              placeholder="Min"
-              value={priceMin}
-              onChange={(e) => setPriceMin(e.target.value)}
-              className="w-full px-3 md:px-4 py-2 md:py-3 border border-neutral-200 rounded-lg md:rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-burgundy focus:border-transparent transition-all text-sm"
+              placeholder={catInfo.placeholder}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-9 pr-4 py-2.5 border border-neutral-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-burgundy/20 focus:border-brand-burgundy transition-all"
             />
           </div>
-          <div>
-            <label className="block text-xs md:text-sm font-medium text-neutral-700 mb-1 md:mb-2">
-              {t('priceTo')}
-            </label>
+          {/* Location */}
+          <div className="relative">
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
             <input
               type="text"
-              placeholder="Max"
-              value={priceMax}
-              onChange={(e) => setPriceMax(e.target.value)}
-              className="w-full px-3 md:px-4 py-2 md:py-3 border border-neutral-200 rounded-lg md:rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-burgundy focus:border-transparent transition-all text-sm"
-            />
-          </div>
-          <div>
-            <label className="block text-xs md:text-sm font-medium text-neutral-700 mb-1 md:mb-2">
-              {t('location')}
-            </label>
-            <input
-              type="text"
-              placeholder={t('location') + '...'}
+              placeholder="Location…"
               value={locationFilter}
               onChange={(e) => setLocationFilter(e.target.value)}
-              className="w-full px-3 md:px-4 py-2 md:py-3 border border-neutral-200 rounded-lg md:rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-burgundy focus:border-transparent transition-all text-sm"
+              className="w-full pl-9 pr-4 py-2.5 border border-neutral-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-burgundy/20 focus:border-brand-burgundy transition-all"
             />
           </div>
-          <div>
-            <label className="block text-xs md:text-sm font-medium text-neutral-700 mb-1 md:mb-2">
-              {t('sortBy')}
-            </label>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="w-full px-3 md:px-4 py-2 md:py-3 border border-neutral-200 rounded-lg md:rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-burgundy focus:border-transparent transition-all text-sm"
-            >
-              <option value="newest">{t('newest')}</option>
-              <option value="price_low">{t('priceLowHigh')}</option>
-              <option value="price_high">{t('priceHighLow')}</option>
-            </select>
-          </div>
+          {/* Sort */}
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="w-full px-4 py-2.5 border border-neutral-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-burgundy/20 focus:border-brand-burgundy transition-all"
+          >
+            <option value="newest">{t('newest')}</option>
+            <option value="price_low">{t('priceLowHigh')}</option>
+            <option value="price_high">{t('priceHighLow')}</option>
+          </select>
         </div>
 
-        {getCategorySpecificFilters()}
+        {/* Quick filter chips */}
+        {quickFilters.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {quickFilters.map((f) => (
+              <button key={f} onClick={() => setTradeFilter(prev => prev === f ? '' : f)} className={chipClass(f)}>
+                {f}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Results Header */}
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-        <p className="text-neutral-600 text-sm md:text-base">
-          {filteredListings.length} {t('listingsFound')}
+      {/* ── Results header ── */}
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-neutral-500">
+          <span className="font-semibold text-neutral-900">{filtered.length}</span> {t('listingsFound')}
         </p>
-        <button
-          onClick={() => {
-            setSearchTerm('');
-            setPriceMin('');
-            setPriceMax('');
-            setLocationFilter('');
-            setTradeFilter('');
-          }}
-          className="text-sm text-brand-burgundy hover:text-neutral-900 font-medium self-start sm:self-auto"
-        >
-          {t('clearFilters')}
-        </button>
+        {(searchTerm || locationFilter || tradeFilter) && (
+          <button
+            onClick={() => { setSearchTerm(''); setLocationFilter(''); setTradeFilter(''); }}
+            className="text-xs font-semibold text-brand-burgundy hover:underline"
+          >
+            Clear filters
+          </button>
+        )}
       </div>
 
-      {/* Listings Grid */}
+      {/* ── Listings ── */}
       {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 px-4 sm:px-0">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <SkeletonCard key={i} />
+        isPeople ? (
+          <div className="bg-white border border-neutral-200 rounded-xl overflow-hidden divide-y divide-neutral-100">
+            {Array.from({ length: 6 }).map((_, i) => <SkeletonRow key={i} />)}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
+          </div>
+        )
+      ) : filtered.length === 0 ? (
+        <div className="bg-white border border-neutral-200 rounded-xl p-12 text-center">
+          <div className="w-12 h-12 bg-neutral-100 rounded-xl flex items-center justify-center mx-auto mb-3">
+            <svg className="w-6 h-6 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+          <p className="text-sm font-semibold text-neutral-700 mb-1">{t('noResults')}</p>
+          <p className="text-xs text-neutral-400">Try adjusting your search or filters.</p>
+        </div>
+      ) : isPeople ? (
+        /* ── Person list (workers / tutors) ── */
+        <div ref={listRef} className="bg-white border border-neutral-200 rounded-xl overflow-hidden">
+          {filtered.map((listing) => (
+            <PersonRow key={listing.id} listing={listing} slug={slug} />
           ))}
         </div>
-      ) : filteredListings.length === 0 ? (
-        <div className="bg-white rounded-xl md:rounded-2xl shadow-lg p-6 md:p-12 text-center border border-neutral-200 mx-4 sm:mx-0">
-          <svg className="w-16 h-16 md:w-24 md:h-24 text-neutral-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <h3 className="text-lg md:text-xl font-semibold text-neutral-900 mb-2">
-            {t('noResults')}
-          </h3>
-        </div>
       ) : (
-        <div ref={gridRef} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 px-4 sm:px-0">
-          {filteredListings.map((listing, index) => (
-            <Link
-              key={listing.id}
-              to={`/listing/${listing.id}`}
-              className={`listing-card-reveal bg-white rounded-xl md:rounded-2xl shadow-md hover:shadow-xl transition-all overflow-hidden border border-neutral-200 group hover-lift reveal-hidden stagger-${Math.min(index % 6 + 1, 6)}`}
-            >
-              <div className="aspect-[4/3] overflow-hidden relative">
-                {listing.images && listing.images.length > 0 ? (
-                  <img
-                    src={listing.images[0]}
-                    alt={listing.title}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-neutral-100 flex items-center justify-center">
-                    {getCategoryIcon(slug)}
-                  </div>
-                )}
-                {listing.featured && (
-                  <div className="absolute top-2 md:top-3 right-2 md:right-3 bg-brand-burgundy text-white px-2 md:px-3 py-0.5 md:py-1 rounded-full text-xs font-semibold shadow-md">
-                    Featured
-                  </div>
-                )}
-                {listing.is_demo && (
-                  <div className="absolute top-2 md:top-3 left-2 md:left-3 bg-orange-600 text-white px-2 md:px-3 py-0.5 md:py-1 rounded-full text-xs font-semibold shadow-md">
-                    {t('demoListing')}
-                  </div>
-                )}
-              </div>
-              <div className="p-4 md:p-5">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-xs font-medium text-brand-burgundy bg-neutral-100 px-2 py-1 rounded-full">
-                    {listing.categories?.name}
-                  </span>
-                </div>
-                <h3 className="font-semibold text-neutral-900 mb-1 line-clamp-1 text-base md:text-lg">
-                  {listing.title}
-                </h3>
-                {getCardSubtitle(listing) && (
-                  <p className="text-xs md:text-sm text-brand-burgundy font-medium mb-2">
-                    {getCardSubtitle(listing)}
-                  </p>
-                )}
-                <div className="flex justify-between items-center pt-3 md:pt-4 border-t border-neutral-200">
-                  <div>
-                    <p className="text-xs text-neutral-500 mb-1">Price</p>
-                    <p className="text-base md:text-lg font-bold text-brand-burgundy">
-                      {listing.price}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xs text-neutral-500 mb-1">{t('location')}</p>
-                    <p className="text-xs md:text-sm font-medium text-neutral-900 truncate max-w-[100px] md:max-w-none">
-                      {listing.location}
-                    </p>
-                  </div>
-                </div>
-                <button className="mt-3 md:mt-4 w-full px-3 md:px-4 py-2 md:py-2.5 bg-neutral-100 text-brand-burgundy rounded-lg text-xs md:text-sm font-medium hover:bg-neutral-200 transition-all">
-                  {catInfo?.cardButton}
-                </button>
-              </div>
-            </Link>
+        /* ── House grid ── */
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filtered.map((listing) => (
+            <HouseCard key={listing.id} listing={listing} catInfo={catInfo} />
           ))}
         </div>
       )}

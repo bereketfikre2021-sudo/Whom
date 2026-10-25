@@ -2,7 +2,79 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useLanguage } from '../contexts/LanguageContext';
-import { seedDemoListings } from '../lib/seedDemoListings';
+
+/* ─── Category SVG icons (white, for solid coloured bg) ─── */
+const ConstructionSVG = () => (
+  <svg viewBox="0 0 64 64" fill="none" className="w-full h-full" aria-hidden="true">
+    <rect x="8" y="46" width="48" height="7" rx="3.5" fill="white" opacity="0.3"/>
+    <rect x="24" y="20" width="16" height="26" rx="2" fill="white" opacity="0.2"/>
+    <path d="M12 46 L32 14 L52 46" stroke="white" strokeWidth="3" fill="none" strokeLinejoin="round"/>
+    <rect x="21" y="31" width="9" height="12" rx="1.5" fill="white" opacity="0.5"/>
+    <rect x="34" y="31" width="9" height="12" rx="1.5" fill="white" opacity="0.5"/>
+    <path d="M18 16 Q32 8 46 16" fill="white" opacity="0.3"/>
+    <rect x="17" y="14" width="30" height="5" rx="2.5" fill="white" opacity="0.7"/>
+  </svg>
+);
+const HouseSVG = () => (
+  <svg viewBox="0 0 64 64" fill="none" className="w-full h-full" aria-hidden="true">
+    <path d="M8 34 L32 12 L56 34" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+    <rect x="14" y="34" width="36" height="22" rx="2" fill="white" opacity="0.2" stroke="white" strokeWidth="1.5"/>
+    <rect x="27" y="42" width="10" height="14" rx="1" fill="white" opacity="0.6"/>
+    <rect x="18" y="38" width="8" height="7" rx="1" fill="white" opacity="0.5"/>
+    <rect x="38" y="38" width="8" height="7" rx="1" fill="white" opacity="0.5"/>
+    <rect x="38" y="11" width="5" height="13" rx="1" fill="white" opacity="0.6"/>
+  </svg>
+);
+const TutorSVG = () => (
+  <svg viewBox="0 0 64 64" fill="none" className="w-full h-full" aria-hidden="true">
+    <rect x="10" y="14" width="44" height="30" rx="3" fill="white" opacity="0.15" stroke="white" strokeWidth="2"/>
+    <line x1="20" y1="24" x2="44" y2="24" stroke="white" strokeWidth="2.5" strokeLinecap="round" opacity="0.9"/>
+    <line x1="20" y1="30" x2="44" y2="30" stroke="white" strokeWidth="2.5" strokeLinecap="round" opacity="0.7"/>
+    <line x1="20" y1="36" x2="34" y2="36" stroke="white" strokeWidth="2.5" strokeLinecap="round" opacity="0.5"/>
+    <path d="M26 44 L38 44 L36 52 L28 52 Z" fill="white" opacity="0.6"/>
+    <line x1="22" y1="52" x2="42" y2="52" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+  </svg>
+);
+
+/* ─── Skeleton card (houses / generic) ─── */
+const SkeletonCard = () => (
+  <div className="bg-white rounded-2xl overflow-hidden border border-neutral-100 shadow-sm">
+    <div className="aspect-[16/10] skeleton" />
+    <div className="p-5 space-y-3">
+      <div className="h-3 skeleton rounded-full w-1/3" />
+      <div className="h-5 skeleton rounded-lg w-3/4" />
+      <div className="h-3 skeleton rounded-full w-full" />
+      <div className="h-8 skeleton rounded-xl mt-3" />
+    </div>
+  </div>
+);
+
+/* ─── Person avatar fallback ─── */
+const PersonAvatar = ({ name, image }) => {
+  const [imgError, setImgError] = useState(false);
+  const initials = (name || '?').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+  const hue = (name || '').split('').reduce((a, c) => a + c.charCodeAt(0), 0) % 360;
+
+  if (image && !imgError) {
+    return (
+      <img
+        src={image}
+        alt={name}
+        onError={() => setImgError(true)}
+        className="w-12 h-12 rounded-full object-cover flex-shrink-0 border border-neutral-200"
+      />
+    );
+  }
+  return (
+    <div
+      className="w-12 h-12 rounded-full flex items-center justify-center font-bold text-white text-sm flex-shrink-0"
+      style={{ backgroundColor: `hsl(${hue},35%,45%)` }}
+      aria-hidden="true"
+    >
+      {initials}
+    </div>
+  );
+};
 
 const Home = () => {
   const { t } = useLanguage();
@@ -10,625 +82,367 @@ const Home = () => {
   const [featuredListings, setFeaturedListings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [seeding, setSeeding] = useState(false);
-  const [seedMessage, setSeedMessage] = useState('');
 
+  useEffect(() => { fetchData(); }, []);
+
+  /* Scroll-reveal */
   useEffect(() => {
-    fetchData();
-  }, []);
-
-  useEffect(() => {
-    const observerOptions = {
-      threshold: 0.1,
-      rootMargin: '0px 0px -50px 0px'
-    };
-
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
+    if (loading) return;
+    const observer = new IntersectionObserver(
+      (entries) => entries.forEach((entry) => {
         if (entry.isIntersecting) {
           entry.target.classList.add('reveal-visible');
           entry.target.classList.remove('reveal-hidden');
           observer.unobserve(entry.target);
         }
-      });
-    }, observerOptions);
-
-    const revealElements = document.querySelectorAll('.reveal-hidden, .reveal-hidden-scale, .reveal-hidden-left, .reveal-hidden-right');
-    revealElements.forEach(el => observer.observe(el));
-
-    return () => {
-      revealElements.forEach(el => observer.unobserve(el));
-    };
+      }),
+      { threshold: 0.1, rootMargin: '0px 0px -50px 0px' }
+    );
+    document.querySelectorAll('.reveal-hidden').forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
   }, [loading]);
 
   const fetchData = async () => {
     try {
-      const listingsData = await supabase
-        .from('listings')
-        .select(`
-          id,
-          title,
-          description,
-          price,
-          location,
-          images,
-          is_demo,
-          featured,
-          categories (*)
-        `)
-        .eq('status', 'active')
-        .eq('featured', true)
-        .order('created_at', { ascending: false })
-        .limit(9);
-
-      if (!listingsData.error) setFeaturedListings(listingsData.data);
-      
-      // If no listings exist, seed demo data
-      if (!listingsData.error && (!listingsData.data || listingsData.data.length === 0)) {
-        console.log('No listings found, seeding demo data...');
-        setSeeding(true);
-        const seedResult = await seedDemoListings();
-        setSeeding(false);
-        
-        if (seedResult.success) {
-          setSeedMessage('Demo listings created successfully');
-          // Fetch listings again after seeding
-          const { data: newListings } = await supabase
+      // Fetch up to 3 listings per category so all three categories always appear
+      const slugs = ['construction-workers', 'houses-for-rent', 'tutors'];
+      const results = await Promise.all(
+        slugs.map((slug) =>
+          supabase
             .from('listings')
-            .select(`
-              id,
-              title,
-              description,
-              price,
-              location,
-              images,
-              is_demo,
-              featured,
-              categories (*)
-            `)
+            .select('id, title, description, price, location, images, is_demo, featured, metadata, categories!inner(*)')
             .eq('status', 'active')
-            .eq('featured', true)
+            .eq('categories.slug', slug)
             .order('created_at', { ascending: false })
-            .limit(9);
-          if (newListings) setFeaturedListings(newListings);
-        } else {
-          setSeedMessage(`Failed to seed: ${seedResult.error}`);
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching data:', error);
+            .limit(3)
+        )
+      );
+      const all = results.flatMap((r) => (r.error ? [] : r.data));
+      setFeaturedListings(all);
+    } catch (err) {
+      console.error('fetchData error:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSearch = () => {
-    if (searchTerm.trim()) {
-      navigate(`/category/construction-workers?q=${encodeURIComponent(searchTerm)}`);
-    }
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (searchTerm.trim()) navigate(`/category/construction-workers?q=${encodeURIComponent(searchTerm)}`);
   };
 
-  const categoryImages = {
-    'construction-workers': 'https://images.unsplash.com/photo-1541888946425-d81bb19240f5?w=800&h=600&fit=crop',
-    'houses-for-rent': 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&h=600&fit=crop',
-    'tutors': 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=800&h=600&fit=crop',
-  };
+  const categories = [
+    { slug: 'construction-workers', label: t('constructionWorkers'), desc: t('constructionWorkersDesc'), cta: t('findWorkers'),    icon: <ConstructionSVG />, bg: 'bg-brand-burgundy' },
+    { slug: 'tutors',               label: t('tutors'),              desc: t('tutorsDesc'),              cta: t('findTutors'),     icon: <TutorSVG />,        bg: 'bg-brand-burgundy-dark' },
+    { slug: 'houses-for-rent',      label: t('housesForRent'),       desc: t('housesForRentDesc'),       cta: t('exploreRentals'), icon: <HouseSVG />,        bg: 'bg-neutral-800'    },
+  ];
 
-  const SkeletonCard = () => (
-    <div className="bg-white rounded-2xl md:rounded-3xl overflow-hidden border border-neutral-200">
-      <div className="aspect-[4/3] skeleton" />
-      <div className="p-4 md:p-6 space-y-3">
-        <div className="h-3 skeleton rounded-full w-1/3" />
-        <div className="h-5 skeleton rounded-lg w-3/4" />
-        <div className="h-3 skeleton rounded-full w-full" />
-        <div className="h-3 skeleton rounded-full w-2/3" />
-        <div className="h-10 skeleton rounded-xl mt-4" />
-      </div>
-    </div>
-  );
+  const howItWorks = [
+    { n: '1', title: t('step1Title'), desc: t('step1Desc'), icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg> },
+    { n: '2', title: t('step2Title'), desc: t('step2Desc'), icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> },
+    { n: '3', title: t('step3Title'), desc: t('step3Desc'), icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.948V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg> },
+  ];
 
-  const handleSeedDemo = async () => {
-    setSeeding(true);
-    setSeedMessage('');
-    const result = await seedDemoListings();
-    setSeeding(false);
-    
-    if (result.success) {
-      setSeedMessage('Demo listings created successfully!');
-      // Refresh the data
-      fetchData();
-    } else {
-      setSeedMessage(`Failed: ${result.error}`);
-    }
+  /* ─── Group listings by category ─── */
+  const grouped = featuredListings.reduce((acc, listing) => {
+    const slug = listing.categories?.slug || 'other';
+    if (!acc[slug]) acc[slug] = [];
+    acc[slug].push(listing);
+    return acc;
+  }, {});
+
+  const categoryOrder = ['construction-workers', 'tutors', 'houses-for-rent'];  const categoryMeta = {
+    'construction-workers': { label: t('constructionWorkers'), cta: t('findWorkers'), slug: 'construction-workers' },
+    'tutors':               { label: t('tutors'),              cta: t('findTutors'),   slug: 'tutors'               },
+    'houses-for-rent':      { label: t('housesForRent'),       cta: t('exploreRentals'), slug: 'houses-for-rent'   },
   };
 
   return (
-    <div className="space-y-16">
-      {/* Seed Demo Button (Development Only) */}
-      {import.meta.env.DEV && (
-        <div className="fixed bottom-4 right-4 z-50">
-          <button
-            onClick={handleSeedDemo}
-            disabled={seeding}
-            className="px-4 py-2 bg-brand-burgundy text-white rounded-lg text-sm font-medium hover:bg-neutral-900 transition-all shadow-lg disabled:opacity-50"
-          >
-            {seeding ? 'Seeding...' : 'Seed Demo Listings'}
-          </button>
-          {seedMessage && (
-            <div className="mt-2 text-xs text-neutral-600 bg-white/90 backdrop-blur-sm px-2 py-1 rounded">
-              {seedMessage}
-            </div>
-          )}
+    <div>
+      {/* ═══════════════════ HERO ═══════════════════ */}
+      <section className="relative overflow-hidden bg-brand-offwhite pt-10 pb-16 md:pt-16 md:pb-24">
+        <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+          <div className="absolute top-0 right-0 w-96 h-96 rounded-full bg-brand-burgundy/[0.04] -translate-y-1/2 translate-x-1/3" />
+          <div className="absolute bottom-0 left-0 w-72 h-72 rounded-full bg-brand-burgundy/[0.04] translate-y-1/2 -translate-x-1/3" />
         </div>
-      )}
 
-      {/* Hero Section */}
-      <section className="relative overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16 lg:py-24">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-center">
-            {/* Left Side - Text Content */}
-            <div className="space-y-4 md:space-y-6">
-              <p className="text-xs md:text-sm font-semibold text-brand-burgundy tracking-wider uppercase opacity-0 animate-fade-in" style={{ animationDelay: '0ms' }}>
-                {t('heroEyebrow')}
-              </p>
-              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-neutral-900 leading-tight opacity-0 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
-                Find the Right People, Homes, and Tutors.
-              </h1>
-              <p className="text-base md:text-lg lg:text-xl text-neutral-600 leading-relaxed max-w-xl opacity-0 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
-                Looking for a skilled worker, a place to rent, or a tutor? Explore local listings, compare your options, and connect directly after payment verification.
-              </p>
-
-              {/* Search Field */}
-              <div className="opacity-0 animate-fade-in-up" style={{ animationDelay: '300ms' }}>
-                <div className="relative group">
-                  <svg className="absolute left-4 sm:left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400 group-focus-within:text-brand-burgundy transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                  <input
-                    type="text"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                    placeholder={t('searchPlaceholder')}
-                    className="w-full pl-12 sm:pl-14 pr-4 sm:pr-6 py-3 sm:py-4 bg-white border-2 border-neutral-200 rounded-xl sm:rounded-2xl text-neutral-900 placeholder-neutral-400 focus:outline-none focus:ring-4 focus:ring-brand-burgundy/10 focus:border-brand-burgundy transition-all shadow-lg text-sm sm:text-base"
-                  />
-                </div>
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 opacity-0 animate-fade-in-up" style={{ animationDelay: '400ms' }}>
-                <Link
-                  to="/category/construction-workers"
-                  className="px-6 sm:px-8 py-3 sm:py-4 bg-brand-burgundy text-white rounded-xl sm:rounded-2xl font-semibold hover:bg-neutral-900 transition-all shadow-lg hover:shadow-xl text-center btn-press text-sm sm:text-base"
-                >
-                  {t('exploreListings')}
-                </Link>
-                <Link
-                  to="/category/houses-for-rent"
-                  className="px-6 sm:px-8 py-3 sm:py-4 bg-white text-brand-burgundy border-2 border-brand-burgundy rounded-xl sm:rounded-2xl font-semibold hover:bg-neutral-100 transition-all text-center btn-press text-sm sm:text-base"
-                >
-                  {t('browseCategories')}
-                </Link>
-              </div>
+        <div className="relative grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+          <div className="space-y-7">
+            <div className="flex items-center gap-2.5 opacity-0 animate-fade-in" style={{ animationDelay: '0ms' }}>
+              <span className="block w-6 h-px bg-brand-burgundy" />
+              <p className="text-xs font-bold tracking-[0.18em] uppercase text-brand-burgundy">{t('heroEyebrow')}</p>
             </div>
 
-            {/* Right Side - Visual Composition */}
-            <div className="relative h-[350px] sm:h-[400px] md:h-[500px] lg:h-[600px] opacity-0 animate-scale-in hidden lg:block" style={{ animationDelay: '500ms' }}>
-              {/* Decorative Background Elements */}
-              <div className="absolute top-0 right-0 w-64 h-64 bg-brand-burgundy/5 rounded-full blur-3xl"></div>
-              <div className="absolute bottom-0 left-0 w-48 h-48 bg-brand-burgundy/5 rounded-full blur-3xl"></div>
-
-              {/* Main Featured Card - Construction Workers */}
-              <div className="absolute top-8 right-0 w-56 md:w-64 bg-white rounded-3xl shadow-2xl overflow-hidden hover-lift z-20">
-                <div className="aspect-[4/3] overflow-hidden relative">
-                  <img
-                    src="https://images.unsplash.com/photo-1541888946425-d81bb19240f5?w=800&h=600&fit=crop"
-                    alt="Construction Workers"
-                    className="w-full h-full object-cover hover-zoom-image"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
-                  <div className="absolute bottom-4 left-4 right-4">
-                    <span className="bg-white/95 backdrop-blur-sm text-brand-burgundy px-3 py-1.5 rounded-full text-xs font-semibold shadow-md">
-                      Construction Workers
-                    </span>
-                  </div>
-                </div>
-                <div className="p-5">
-                  <h3 className="font-bold text-neutral-900 text-base mb-1">Construction Workers</h3>
-                  <p className="text-sm text-neutral-600">Verified experts ready to help</p>
-                </div>
-              </div>
-
-              {/* Secondary Card - Houses for Rent */}
-              <div className="absolute top-32 left-0 w-48 md:w-56 bg-white rounded-3xl shadow-2xl overflow-hidden hover-lift z-10">
-                <div className="aspect-[4/3] overflow-hidden relative">
-                  <img
-                    src="https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&h=600&fit=crop"
-                    alt="Houses for Rent"
-                    className="w-full h-full object-cover hover-zoom-image"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
-                  <div className="absolute bottom-4 left-4 right-4">
-                    <span className="bg-white/95 backdrop-blur-sm text-brand-burgundy px-3 py-1.5 rounded-full text-xs font-semibold shadow-md">
-                      Houses for Rent
-                    </span>
-                  </div>
-                </div>
-                <div className="p-4">
-                  <h3 className="font-bold text-neutral-900 text-sm mb-1">Rental Properties</h3>
-                  <p className="text-xs text-neutral-600">Find your perfect home</p>
-                </div>
-              </div>
-
-              {/* Tertiary Card - Tutors */}
-              <div className="absolute bottom-8 left-16 md:left-24 w-48 md:w-56 bg-white rounded-3xl shadow-2xl overflow-hidden hover-lift z-10">
-                <div className="aspect-[4/3] overflow-hidden relative">
-                  <img
-                    src="https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=800&h=600&fit=crop"
-                    alt="Tutors"
-                    className="w-full h-full object-cover hover-zoom-image"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
-                  <div className="absolute bottom-4 left-4 right-4">
-                    <span className="bg-white/95 backdrop-blur-sm text-brand-burgundy px-3 py-1.5 rounded-full text-xs font-semibold shadow-md">
-                      Tutors
-                    </span>
-                  </div>
-                </div>
-                <div className="p-4">
-                  <h3 className="font-bold text-neutral-900 text-sm mb-1">Expert Tutors</h3>
-                  <p className="text-xs text-neutral-600">Learn from the best</p>
-                </div>
-              </div>
-
-              {/* Floating Stats/Info Badge */}
-              <div className="absolute top-4 left-20 md:left-32 bg-brand-burgundy text-white px-4 py-2 rounded-xl shadow-lg z-30 animate-fade-in" style={{ animationDelay: '700ms' }}>
-                <div className="flex items-center gap-2">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            <h1 className="opacity-0 animate-fade-in-up" style={{ animationDelay: '80ms' }}>
+              <span className="block text-[2.6rem] sm:text-5xl lg:text-[3.6rem] font-extrabold text-neutral-900 leading-[1.08] tracking-tight">
+                Find the Right
+              </span>
+              <span className="block text-[2.6rem] sm:text-5xl lg:text-[3.6rem] font-extrabold leading-[1.08] tracking-tight mt-1">
+                <span className="relative inline-block text-brand-burgundy">
+                  People,
+                  <svg className="absolute -bottom-1 left-0 w-full" height="6" viewBox="0 0 200 6" preserveAspectRatio="none" fill="none" aria-hidden="true">
+                    <path d="M0 5 Q50 0 100 4 Q150 8 200 3" stroke="#561836" strokeWidth="2.5" strokeLinecap="round" opacity="0.4"/>
                   </svg>
-                  <span className="text-sm font-semibold">Verified Listings</span>
-                </div>
+                </span>
+                {' '}<span className="text-neutral-900">Homes,</span>
+              </span>
+              <span className="block text-[2.6rem] sm:text-5xl lg:text-[3.6rem] font-extrabold text-neutral-900 leading-[1.08] tracking-tight mt-1">
+                and Tutors.
+              </span>
+            </h1>
+
+            <p className="text-base sm:text-lg text-neutral-500 leading-[1.75] max-w-lg opacity-0 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+              ምን እናቅርብ connects you with skilled construction workers, rental homes, and expert tutors across Addis Ababa — all in one place.
+            </p>
+
+            <form onSubmit={handleSearch} className="opacity-0 animate-fade-in-up" style={{ animationDelay: '280ms' }}>
+              <div className="relative flex shadow-lg rounded-xl overflow-hidden border border-neutral-200 focus-within:border-brand-burgundy focus-within:ring-4 focus-within:ring-brand-burgundy/10 transition-all">
+                <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder={t('searchPlaceholder')}
+                  className="flex-1 pl-12 pr-4 py-4 bg-white text-neutral-900 placeholder-neutral-400 text-sm focus:outline-none"
+                />
+                <button type="submit" className="px-6 py-4 bg-brand-burgundy text-white text-sm font-semibold hover:bg-brand-burgundy-dark transition-colors whitespace-nowrap">
+                  Search
+                </button>
               </div>
+            </form>
+
+            <div className="flex flex-wrap gap-2 opacity-0 animate-fade-in-up" style={{ animationDelay: '360ms' }}>
+              <span className="text-xs text-neutral-500 self-center">Quick browse:</span>
+              {categories.map((c) => (
+                <Link key={c.slug} to={`/category/${c.slug}`}
+                  className="px-3 py-1.5 text-xs font-medium rounded-full border border-neutral-200 text-neutral-600 hover:border-brand-burgundy hover:text-brand-burgundy hover:bg-brand-burgundy/5 transition-all">
+                  {c.label}
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          <div className="hidden lg:flex items-center justify-center opacity-0 animate-scale-in" style={{ animationDelay: '400ms' }}>
+            <div className="relative w-full max-w-lg">
+              <img src="/src/assets/hero-illustration.svg" alt="" className="w-full h-auto drop-shadow-md" loading="eager" aria-hidden="true" />
             </div>
           </div>
         </div>
-      </section>
 
-      {/* Categories Section */}
-      <section>
-        <div className="text-center mb-4 md:mb-6">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-neutral-900 mb-4">
-            {t('whatLookingFor')}
-          </h2>
-          <p className="text-base md:text-lg text-neutral-600 max-w-2xl mx-auto px-4">
-            {t('categoryDescription')}
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 lg:gap-8 px-4 sm:px-0">
-          {/* Construction Workers */}
-          <Link
-            to="/category/construction-workers"
-            className="group relative bg-white rounded-2xl md:rounded-3xl shadow-lg hover:shadow-2xl transition-all overflow-hidden border border-neutral-200 hover-lift reveal-hidden"
-          >
-            <div className="aspect-[4/3] overflow-hidden relative">
-              <img
-                src={categoryImages['construction-workers']}
-                alt="Construction Workers"
-                className="w-full h-full object-cover hover-zoom-image"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-brand-burgundy/90 via-brand-burgundy/20 to-transparent"></div>
-              <div className="absolute top-3 md:top-4 left-3 md:left-4">
-                <span className="bg-white/95 backdrop-blur-sm text-brand-burgundy px-3 md:px-4 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-semibold shadow-md">
-                  Construction Workers
-                </span>
-              </div>
-            </div>
-            <div className="p-4 md:p-6">
-              <h3 className="text-xl md:text-2xl font-bold text-neutral-900 mb-2 md:mb-3">
-                {t('constructionWorkers')}
-              </h3>
-              <p className="text-neutral-600 text-sm md:text-base line-clamp-2 mb-4 md:mb-5">
-                {t('constructionWorkersDesc')}
-              </p>
-              <div className="flex items-center justify-between">
-                <span className="text-brand-burgundy font-semibold text-sm md:text-base">
-                  {t('findWorkers')}
-                </span>
-                <div className="w-9 h-9 md:w-10 md:h-10 bg-brand-burgundy/10 rounded-full flex items-center justify-center group-hover:bg-brand-burgundy transition-colors">
-                  <svg className="w-4 h-4 md:w-5 md:h-5 text-brand-burgundy group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </div>
-              </div>
-            </div>
-          </Link>
-
-          {/* Houses for Rent */}
-          <Link
-            to="/category/houses-for-rent"
-            className="group relative bg-white rounded-2xl md:rounded-3xl shadow-lg hover:shadow-2xl transition-all overflow-hidden border border-neutral-200 hover-lift reveal-hidden stagger-1"
-          >
-            <div className="aspect-[4/3] overflow-hidden relative">
-              <img
-                src={categoryImages['houses-for-rent']}
-                alt="Houses for Rent"
-                className="w-full h-full object-cover hover-zoom-image"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-brand-burgundy/90 via-brand-burgundy/20 to-transparent"></div>
-              <div className="absolute top-3 md:top-4 left-3 md:left-4">
-                <span className="bg-white/95 backdrop-blur-sm text-brand-burgundy px-3 md:px-4 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-semibold shadow-md">
-                  Houses for Rent
-                </span>
-              </div>
-            </div>
-            <div className="p-4 md:p-6">
-              <h3 className="text-xl md:text-2xl font-bold text-neutral-900 mb-2 md:mb-3">
-                {t('housesForRent')}
-              </h3>
-              <p className="text-neutral-600 text-sm md:text-base line-clamp-2 mb-4 md:mb-5">
-                {t('housesForRentDesc')}
-              </p>
-              <div className="flex items-center justify-between">
-                <span className="text-brand-burgundy font-semibold text-sm md:text-base">
-                  {t('exploreRentals')}
-                </span>
-                <div className="w-9 h-9 md:w-10 md:h-10 bg-brand-burgundy/10 rounded-full flex items-center justify-center group-hover:bg-brand-burgundy transition-colors">
-                  <svg className="w-4 h-4 md:w-5 md:h-5 text-brand-burgundy group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </div>
-              </div>
-            </div>
-          </Link>
-
-          {/* Tutors */}
-          <Link
-            to="/category/tutors"
-            className="group relative bg-white rounded-2xl md:rounded-3xl shadow-lg hover:shadow-2xl transition-all overflow-hidden border border-neutral-200 hover-lift reveal-hidden stagger-2"
-          >
-            <div className="aspect-[4/3] overflow-hidden relative">
-              <img
-                src={categoryImages['tutors']}
-                alt="Tutors"
-                className="w-full h-full object-cover hover-zoom-image"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-brand-burgundy/90 via-brand-burgundy/20 to-transparent"></div>
-              <div className="absolute top-3 md:top-4 left-3 md:left-4">
-                <span className="bg-white/95 backdrop-blur-sm text-brand-burgundy px-3 md:px-4 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-semibold shadow-md">
-                  Tutors
-                </span>
-              </div>
-            </div>
-            <div className="p-4 md:p-6">
-              <h3 className="text-xl md:text-2xl font-bold text-neutral-900 mb-2 md:mb-3">
-                {t('tutors')}
-              </h3>
-              <p className="text-neutral-600 text-sm md:text-base line-clamp-2 mb-4 md:mb-5">
-                {t('tutorsDesc')}
-              </p>
-              <div className="flex items-center justify-between">
-                <span className="text-brand-burgundy font-semibold text-sm md:text-base">
-                  {t('findTutors')}
-                </span>
-                <div className="w-9 h-9 md:w-10 md:h-10 bg-brand-burgundy/10 rounded-full flex items-center justify-center group-hover:bg-brand-burgundy transition-colors">
-                  <svg className="w-4 h-4 md:w-5 md:h-5 text-brand-burgundy group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </div>
-              </div>
-            </div>
-          </Link>
+        <div className="flex flex-wrap gap-3 mt-8 lg:hidden opacity-0 animate-fade-in-up" style={{ animationDelay: '440ms' }}>
+          {categories.map((c) => (
+            <span key={c.slug} className="text-xs font-medium px-3 py-1.5 rounded-full bg-brand-burgundy/8 text-brand-burgundy border border-brand-burgundy/20">{c.label}</span>
+          ))}
         </div>
       </section>
 
-      {/* Featured Listings */}
-      <section className="px-4 sm:px-0">
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-8 md:mb-12 gap-4">
+      {/* ═══════════════════ FEATURED LISTINGS ═══════════════════ */}
+      <section className="py-16 md:py-20 border-t border-neutral-100">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end mb-10 gap-4">
           <div>
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-neutral-900 mb-2">
-              {t('exploreAvailableListings')}
-            </h2>
-            <p className="text-neutral-600 text-sm md:text-base">{t('browseListingsDesc')}</p>
+            <h2 className="text-3xl md:text-4xl font-bold text-neutral-900 mb-2 reveal-hidden">{t('exploreAvailableListings')}</h2>
+            <p className="text-neutral-500 text-base reveal-hidden stagger-1">{t('browseListingsDesc')}</p>
           </div>
-          <Link
-            to="/category/construction-workers"
-            className="flex items-center text-brand-burgundy hover:text-neutral-900 font-medium group self-start sm:self-auto"
-          >
-            View All
-            <svg className="w-5 h-5 ml-1 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </Link>
         </div>
 
         {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-            {Array.from({ length: 3 }).map((_, i) => <SkeletonCard key={i} />)}
+          /* Skeleton — two person rows + one house card */
+          <div className="space-y-8">
+            <div className="bg-white border border-neutral-200 rounded-2xl overflow-hidden divide-y divide-neutral-100">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-4 px-4 py-4">
+                  <div className="w-12 h-12 skeleton rounded-full flex-shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 skeleton rounded w-2/5" />
+                    <div className="h-3 skeleton rounded w-3/5" />
+                    <div className="h-3 skeleton rounded w-1/4" />
+                  </div>
+                  <div className="w-16 h-4 skeleton rounded" />
+                </div>
+              ))}
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="bg-white rounded-2xl border border-neutral-200 overflow-hidden">
+                  <div className="aspect-[16/10] skeleton" />
+                  <div className="p-4 space-y-2">
+                    <div className="h-4 skeleton rounded w-3/4" />
+                    <div className="h-3 skeleton rounded w-1/2" />
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-        ) : featuredListings.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-            {featuredListings.map((listing, index) => (
-              <Link
-                key={listing.id}
-                to={`/listing/${listing.id}`}
-                className="bg-white rounded-2xl md:rounded-3xl shadow-lg hover:shadow-2xl transition-all overflow-hidden border border-neutral-200 group hover-lift reveal-hidden"
-                style={{ transitionDelay: `${index * 100}ms` }}
-              >
-                <div className="aspect-[4/3] overflow-hidden relative bg-neutral-100">
-                  {listing.images && listing.images.length > 0 ? (
-                    <img
-                      src={listing.images[0]}
-                      alt={listing.title}
-                      className="w-full h-full object-cover hover-zoom-image"
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-neutral-100 to-neutral-200 flex items-center justify-center">
-                      <svg className="w-12 h-12 md:w-16 md:h-16 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                    </div>
-                  )}
-                  {listing.featured && (
-                    <div className="absolute top-3 md:top-4 right-3 md:right-4 bg-brand-burgundy text-white px-3 md:px-4 py-1 md:py-1.5 rounded-full text-xs font-semibold shadow-lg">
-                      Featured
-                    </div>
-                  )}
-                  {listing.is_demo && (
-                    <div className="absolute top-3 md:top-4 left-3 md:left-4 bg-orange-600 text-white px-3 md:px-4 py-1 md:py-1.5 rounded-full text-xs font-semibold shadow-lg">
-                      {t('demoListing')}
-                    </div>
-                  )}
-                </div>
-                <div className="p-4 md:p-6">
-                  <div className="flex items-center gap-2 mb-2 md:mb-3">
-                    <span className="text-xs font-semibold text-brand-burgundy bg-brand-burgundy/10 px-2 md:px-3 py-1 md:py-1.5 rounded-full">
-                      {listing.categories?.name}
-                    </span>
-                  </div>
-                  <h3 className="font-bold text-neutral-900 mb-2 line-clamp-1 text-base md:text-xl">
-                    {listing.title}
-                  </h3>
-                  <p className="text-xs md:text-sm text-neutral-600 mb-3 md:mb-4 line-clamp-2 min-h-[32px] md:min-h-[40px]">
-                    {listing.description}
-                  </p>
-                  <div className="flex items-center justify-between mb-3 md:mb-5">
-                    <div className="flex items-center gap-2 text-neutral-500 text-xs md:text-sm">
-                      <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
-                      <span className="truncate max-w-[100px] md:max-w-[120px]">{listing.location}</span>
-                    </div>
-                    {listing.price && (
-                      <span className="text-base md:text-xl font-bold text-brand-burgundy">
-                        {listing.price}
-                      </span>
-                    )}
-                  </div>
-                  <button className="w-full px-4 md:px-6 py-2.5 md:py-3.5 bg-brand-burgundy text-white rounded-xl md:rounded-2xl text-xs md:text-sm font-semibold hover:bg-neutral-900 transition-all btn-press">
-                    {t('viewDetails')}
-                  </button>
-                </div>
-              </Link>
-            ))}
+        ) : featuredListings.length === 0 ? (
+          <div className="text-center py-20 border border-dashed border-neutral-200 rounded-2xl">
+            <p className="text-neutral-400 text-sm">{t('noListingsYet')}</p>
           </div>
         ) : (
-          <div className="text-center py-12 text-neutral-500 text-sm">
-            Listings coming soon.
+          <div className="space-y-10">
+            {categoryOrder.map((catSlug) => {
+              const items = grouped[catSlug];
+              if (!items || items.length === 0) return null;
+              const meta = categoryMeta[catSlug];
+              const isPeople = catSlug === 'construction-workers' || catSlug === 'tutors';
+
+              return (
+                <div key={catSlug} className="reveal-hidden">
+                  {/* Category sub-header */}
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-base font-bold text-neutral-900">{meta.label}</h3>
+                    <Link
+                      to={`/category/${meta.slug}`}
+                      className="flex items-center gap-1 text-xs font-semibold text-brand-burgundy hover:underline"
+                    >
+                      {meta.cta}
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </Link>
+                  </div>
+
+                  {isPeople ? (
+                    /* ── Person list panel ── */
+                    <div className="bg-white border border-neutral-200 rounded-2xl overflow-hidden divide-y divide-neutral-100">
+                      {items.map((listing) => {
+                        const m = listing.metadata || {};
+                        const image = listing.images?.[0];
+                        const trade = catSlug === 'construction-workers' ? m.worker_type : m.subject;
+                        const exp   = m.experience || '';
+                        const extra = catSlug === 'construction-workers' ? (m.availability || '') : (m.grade_level || m.teaching_arrangement || '');
+
+                        return (
+                          <Link
+                            key={listing.id}
+                            to={`/listing/${listing.id}`}
+                            className="flex items-center gap-4 px-4 py-4 hover:bg-neutral-50 transition-colors group"
+                          >
+                            <PersonAvatar name={listing.title} image={image} />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <p className="text-sm font-bold text-neutral-900 truncate group-hover:text-brand-burgundy transition-colors">
+                                  {listing.title}
+                                </p>
+                                {listing.featured && (
+                                  <span className="hidden sm:inline text-[10px] font-bold text-brand-burgundy bg-brand-burgundy/8 px-1.5 py-0.5 rounded-full flex-shrink-0">
+                                    Featured
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                                {trade && <span className="text-xs font-semibold text-brand-burgundy">{trade}</span>}
+                                {trade && exp && <span className="text-neutral-300 text-xs">·</span>}
+                                {exp   && <span className="text-xs text-neutral-500">{exp}</span>}
+                                {extra && <><span className="text-neutral-300 text-xs">·</span><span className="text-xs text-neutral-400">{extra}</span></>}
+                              </div>
+                              <p className="flex items-center gap-1 text-xs text-neutral-400 mt-1">
+                                <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                                {listing.location}
+                              </p>
+                            </div>
+                            <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                              {listing.price && <span className="text-sm font-extrabold text-brand-burgundy">{listing.price}</span>}
+                              <svg className="w-4 h-4 text-neutral-300 group-hover:text-brand-burgundy transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                              </svg>
+                            </div>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    /* ── House image grid — full card style ── */
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {items.map((listing) => {
+                        const image = listing.images?.[0];
+                        const m = listing.metadata || {};
+                        const sub = [
+                          m.bedrooms ? `${m.bedrooms} bed` : null,
+                          m.bathrooms ? `${m.bathrooms} bath` : null,
+                          m.property_type,
+                        ].filter(Boolean).join(' · ');
+
+                        return (
+                          <Link
+                            key={listing.id}
+                            to={`/listing/${listing.id}`}
+                            className="group bg-white rounded-2xl border border-neutral-200 overflow-hidden hover:border-brand-burgundy/30 hover:shadow-lg transition-all"
+                          >
+                            {/* Image */}
+                            <div className="aspect-[4/3] bg-neutral-100 overflow-hidden relative">
+                              {image ? (
+                                <img src={image} alt={listing.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <svg className="w-10 h-10 text-neutral-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 22V12h6v10" />
+                                  </svg>
+                                </div>
+                              )}
+                              {listing.featured && (
+                                <span className="absolute top-2.5 right-2.5 text-[10px] font-bold text-brand-burgundy bg-white/95 backdrop-blur-sm px-2 py-0.5 rounded-full border border-brand-burgundy/20 shadow-sm">Featured</span>
+                              )}
+                            </div>
+                            {/* Body */}
+                            <div className="p-4">
+                              <span className="text-[11px] font-semibold text-brand-burgundy bg-brand-burgundy/8 px-2 py-0.5 rounded-full">{listing.categories?.name}</span>
+                              <p className="mt-2 text-sm font-bold text-neutral-900 line-clamp-1 group-hover:text-brand-burgundy transition-colors">{listing.title}</p>
+                              {sub && <p className="text-xs text-neutral-500 mt-0.5">{sub}</p>}
+                              <p className="mt-1.5 text-xs text-neutral-500 line-clamp-2 min-h-[32px]">{listing.description}</p>
+                              <div className="flex items-center justify-between mt-3 pt-3 border-t border-neutral-100">
+                                <span className="flex items-center gap-1 text-xs text-neutral-400">
+                                  <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                  </svg>
+                                  {listing.location}
+                                </span>
+                                {listing.price && <span className="text-base font-extrabold text-brand-burgundy">{listing.price}</span>}
+                              </div>
+                              <div className="mt-3 w-full text-center py-2 bg-brand-burgundy/5 group-hover:bg-brand-burgundy text-brand-burgundy group-hover:text-white rounded-xl text-xs font-semibold transition-all border border-brand-burgundy/20 group-hover:border-brand-burgundy">
+                                View Property
+                              </div>
+                            </div>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </section>
 
-      {/* How It Works */}
-      <section className="bg-white rounded-2xl md:rounded-3xl shadow-lg p-6 md:p-8 lg:p-12 border border-neutral-200 mx-4 sm:mx-0">
-        <div className="text-center mb-8 md:mb-12">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-neutral-900 mb-4">
-            {t('howItWorks')}
-          </h2>
+      {/* ═══════════════════ HOW IT WORKS ═══════════════════ */}
+      <section className="py-16 md:py-20 border-t border-neutral-100">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl md:text-4xl font-bold text-neutral-900 mb-3 reveal-hidden">{t('howItWorks')}</h2>
         </div>
-
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
-          <div className="text-center group hover-lift reveal-hidden">
-            <div className="w-16 h-16 md:w-20 md:h-20 bg-brand-burgundy rounded-2xl flex items-center justify-center mx-auto mb-4 md:mb-6 shadow-lg group-hover:shadow-xl transition-shadow">
-              <span className="text-3xl md:text-4xl font-bold text-white">1</span>
+          {howItWorks.map((step, i) => (
+            <div key={step.n} className={`reveal-hidden stagger-${i + 1} relative`}>
+              {i < 2 && <div className="hidden md:block absolute top-8 left-[calc(100%-1rem)] w-8 h-px bg-neutral-200 z-10" />}
+              <div className="flex flex-col items-start p-6 bg-white border border-neutral-200 rounded-2xl h-full">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-brand-burgundy flex items-center justify-center text-white flex-shrink-0">{step.icon}</div>
+                  <span className="text-sm font-bold text-neutral-400">Step {step.n}</span>
+                </div>
+                <h3 className="text-lg font-bold text-neutral-900 mb-2">{step.title}</h3>
+                <p className="text-neutral-500 text-sm leading-relaxed">{step.desc}</p>
+              </div>
             </div>
-            <h3 className="text-lg md:text-xl font-bold text-neutral-900 mb-2 md:mb-3">{t('step1Title')}</h3>
-            <p className="text-sm md:text-base text-neutral-600 leading-relaxed">
-              {t('step1Desc')}
-            </p>
-          </div>
-          <div className="text-center group hover-lift reveal-hidden stagger-1">
-            <div className="w-16 h-16 md:w-20 md:h-20 bg-brand-burgundy rounded-2xl flex items-center justify-center mx-auto mb-4 md:mb-6 shadow-lg group-hover:shadow-xl transition-shadow">
-              <span className="text-3xl md:text-4xl font-bold text-white">2</span>
-            </div>
-            <h3 className="text-lg md:text-xl font-bold text-neutral-900 mb-2 md:mb-3">{t('step2Title')}</h3>
-            <p className="text-sm md:text-base text-neutral-600 leading-relaxed">
-              {t('step2Desc')}
-            </p>
-          </div>
-          <div className="text-center group hover-lift reveal-hidden stagger-2">
-            <div className="w-16 h-16 md:w-20 md:h-20 bg-brand-burgundy rounded-2xl flex items-center justify-center mx-auto mb-4 md:mb-6 shadow-lg group-hover:shadow-xl transition-shadow">
-              <span className="text-3xl md:text-4xl font-bold text-white">3</span>
-            </div>
-            <h3 className="text-lg md:text-xl font-bold text-neutral-900 mb-2 md:mb-3">{t('step3Title')}</h3>
-            <p className="text-sm md:text-base text-neutral-600 leading-relaxed">
-              {t('step3Desc')}
-            </p>
-          </div>
+          ))}
         </div>
       </section>
 
-      {/* Trust and Transparency */}
-      <section className="bg-neutral-100 rounded-2xl md:rounded-3xl p-6 md:p-8 lg:p-12 border border-neutral-200 mx-4 sm:mx-0">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-neutral-900 mb-4 md:mb-6">
-            {t('trustTitle')}
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-            <div className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6 shadow-md hover-lift reveal-hidden">
-              <div className="w-10 h-10 md:w-12 md:h-12 bg-brand-burgundy/10 rounded-xl flex items-center justify-center mx-auto mb-3 md:mb-4">
-                <svg className="w-5 h-5 md:w-6 md:h-6 text-brand-burgundy" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                </svg>
-              </div>
-              <h3 className="font-semibold text-neutral-900 mb-2 text-sm md:text-base">{t('listingReview')}</h3>
-              <p className="text-xs md:text-sm text-neutral-600">{t('listingReviewDesc')}</p>
-            </div>
-            <div className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6 shadow-md hover-lift reveal-hidden stagger-1">
-              <div className="w-10 h-10 md:w-12 md:h-12 bg-brand-burgundy/10 rounded-xl flex items-center justify-center mx-auto mb-3 md:mb-4">
-                <svg className="w-5 h-5 md:w-6 md:h-6 text-brand-burgundy" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-              </div>
-              <h3 className="font-semibold text-neutral-900 mb-2 text-sm md:text-base">{t('transparentFees')}</h3>
-              <p className="text-xs md:text-sm text-neutral-600">{t('transparentFeesDesc')}</p>
-            </div>
-            <div className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6 shadow-md hover-lift reveal-hidden stagger-2">
-              <div className="w-10 h-10 md:w-12 md:h-12 bg-brand-burgundy/10 rounded-xl flex items-center justify-center mx-auto mb-3 md:mb-4">
-                <svg className="w-5 h-5 md:w-6 md:h-6 text-brand-burgundy" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-              </div>
-              <h3 className="font-semibold text-neutral-900 mb-2 text-sm md:text-base">{t('controlledAccess')}</h3>
-              <p className="text-xs md:text-sm text-neutral-600">{t('controlledAccessDesc')}</p>
-            </div>
-          </div>
-          <div className="mt-4 md:mt-6 text-xs md:text-sm text-neutral-600">
-            {t('trackPayment')}
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="text-center px-4 sm:px-0">
-        <div className="bg-brand-burgundy rounded-2xl md:rounded-3xl p-6 md:p-8 lg:p-16 shadow-2xl overflow-hidden relative">
-          <div className="absolute top-0 right-0 w-64 h-64 md:w-96 md:h-96 bg-white/5 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-0 left-0 w-48 h-48 md:w-64 md:h-64 bg-white/5 rounded-full blur-3xl"></div>
-          <div className="relative z-10">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-4">
-              {t('readyToFind')}
-            </h2>
-            <p className="text-base md:text-xl text-neutral-200 mb-6 md:mb-8 max-w-2xl mx-auto px-4">
-              {t('readyToFindDesc')}
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center px-4">
-              <Link
-                to="/category/construction-workers"
-                className="px-6 md:px-8 py-3 md:py-4 bg-white text-brand-burgundy rounded-xl md:rounded-2xl font-semibold hover:bg-neutral-100 transition-all shadow-lg hover:shadow-xl btn-press text-sm md:text-base"
-              >
-                {t('exploreListings')}
-              </Link>
-              <Link
-                to="/register"
-                className="px-6 md:px-8 py-3 md:py-4 bg-white/10 text-white border-2 border-white/30 rounded-xl md:rounded-2xl font-semibold hover:bg-white/20 transition-all btn-press text-sm md:text-base"
-              >
-                {t('createAccount')}
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
     </div>
   );
 };
