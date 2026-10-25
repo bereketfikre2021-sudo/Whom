@@ -15,6 +15,8 @@ import AdminPayments from './pages/admin/Payments';
 import AdminFees from './pages/admin/Fees';
 import AdminUsers from './pages/admin/Users';
 
+import ScrollToTop from './components/ScrollToTop';
+
 const AdminRoute = ({ children }) => {
   const { user, loading, isAdmin } = useAuth();
 
@@ -44,6 +46,7 @@ function App() {
     <LanguageProvider>
       <AuthProvider>
         <Router>
+          <ScrollToTop />
           <Routes>
             {/* Public routes — wrapped in shared Layout */}
             <Route path="/" element={<Layout><Home /></Layout>} />
