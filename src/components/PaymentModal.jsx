@@ -76,8 +76,14 @@ const PaymentModal = ({ listingId, listingTitle, feeAmount, isDemo, onClose, onS
     setLoading(true);
     setError('');
     try {
-      const fileName = `${user.id}/${Date.now()}_${receiptFile.name}`;
-      const { error: uploadErr } = await supabase.storage.from('receipts').upload(fileName, receiptFile);
+      // Upload to listing-images bucket under receipts/ subfolder
+      // (uses the existing public bucket which is confirmed working)
+      const ext = receiptFile.name.split('.').pop() || 'jpg';
+      const fileName = `receipts/${user.id}/${Date.now()}.${ext}`;
+      const { error: uploadErr } = await supabase.storage
+        .from('listing-images')
+        .upload(fileName, receiptFile, { upsert: false, contentType: receiptFile.type });
+
       if (uploadErr) {
         console.error('Receipt upload error:', uploadErr);
         setError(`Upload failed: ${uploadErr.message}`);
@@ -85,17 +91,26 @@ const PaymentModal = ({ listingId, listingTitle, feeAmount, isDemo, onClose, onS
         return;
       }
 
-      const { data: { publicUrl } } = supabase.storage.from('receipts').getPublicUrl(fileName);
+      const { data: { publicUrl } } = supabase.storage
+        .from('listing-images')
+        .getPublicUrl(fileName);
 
       const { error: payErr } = await supabase.rpc('create_payment', {
         p_listing_id:     listingId,
         p_receipt_url:    publicUrl,
         p_payment_method: method,
       });
-      if (payErr) { setError('Submission failed. Please try again.'); setLoading(false); return; }
+
+      if (payErr) {
+        console.error('Payment RPC error:', payErr);
+        setError(`Submission failed: ${payErr.message}`);
+        setLoading(false);
+        return;
+      }
 
       onSuccess();
-    } catch {
+    } catch (err) {
+      console.error('Unexpected error:', err);
       setError('Something went wrong. Please try again.');
     } finally {
       setLoading(false);
