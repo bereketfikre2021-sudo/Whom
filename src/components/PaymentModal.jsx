@@ -78,7 +78,12 @@ const PaymentModal = ({ listingId, listingTitle, feeAmount, isDemo, onClose, onS
     try {
       const fileName = `${user.id}/${Date.now()}_${receiptFile.name}`;
       const { error: uploadErr } = await supabase.storage.from('receipts').upload(fileName, receiptFile);
-      if (uploadErr) { setError('Upload failed. Please try again.'); setLoading(false); return; }
+      if (uploadErr) {
+        console.error('Receipt upload error:', uploadErr);
+        setError(`Upload failed: ${uploadErr.message}`);
+        setLoading(false);
+        return;
+      }
 
       const { data: { publicUrl } } = supabase.storage.from('receipts').getPublicUrl(fileName);
 
